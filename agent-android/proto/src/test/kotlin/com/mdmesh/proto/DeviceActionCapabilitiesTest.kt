@@ -6,6 +6,7 @@ class DeviceActionCapabilitiesTest {
         val keys = DeviceAction.supportedKeys(false, false, 35, true)
         for (key in listOf("lock", "reboot", "wipe", "passcodeReset", "lockscreenMessage", "configApply")) assertFalse(key in keys)
         assertTrue("ring" in keys)
+        assertTrue(DeviceAction.LOCATION_OFF_KEY in keys)
         assertTrue("configApply" in DeviceAction.supportedKeys(true, true, 35, true))
     }
     @Test fun `active classic admin can lock without becoming device owner`() {

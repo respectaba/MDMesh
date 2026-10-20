@@ -58,7 +58,7 @@ object DeviceAction {
                 "reboot" -> deviceOwner && adminActive && sdkInt >= 24
                 "wipe", "lockscreenMessage", "configApply" -> deviceOwner && adminActive
                 "passcodeReset" -> deviceOwner && adminActive && sdkInt >= 26 && resetReady
-                else -> key in setOf("alert", "ring", "ringStop", "powerMode", "locationMode")
+                else -> key in setOf("alert", "ring", "ringStop", "powerMode", "locationMode", LOCATION_OFF_KEY)
             }
         }
 }
