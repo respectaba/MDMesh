@@ -28,6 +28,6 @@ class DispatcherIdempotencyTest {
         assertEquals(1, runs.get())
         assertEquals(CommandStatus.DONE, first.status)
         assertEquals(CommandStatus.DONE, second.status)
-        assertEquals("duplicate ignored", second.detail)
+        assertEquals(first, second)
     }
 }
