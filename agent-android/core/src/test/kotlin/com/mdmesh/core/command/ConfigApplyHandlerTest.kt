@@ -51,4 +51,13 @@ class ConfigApplyHandlerTest {
         assertEquals(CommandStatus.FAILED, handler(PolicyOutcome.Applied).handle(cmd(null)).status)
         assertEquals(CommandStatus.FAILED, handler(PolicyOutcome.Applied).handle(cmd(buildJsonObject { put("revision", 5) })).status)
     }
+    @Test fun `display extension needs its distinct capability and rejects unknown control fields`() = runTest {
+        val displayDoc = buildJsonObject { put("revision", "r1"); putJsonObject("managedDisplay") { put("mediaVolumePercent", 40) } }
+        assertEquals(CommandStatus.UNSUPPORTED, handler(PolicyOutcome.Applied).handle(cmd(displayDoc).copy(requiresCapability = "device.configApply")).status)
+        for (payload in listOf(
+            buildJsonObject { put("revision", "r1"); putJsonObject("managedDisplay") { put("stream", "alarm") } },
+            buildJsonObject { put("revision", "r1"); putJsonObject("managedDisplay") { putJsonObject("brightness") { put("automatic", true); put("setting", "adb_enabled") } } },
+        )) assertEquals(CommandStatus.FAILED, handler(PolicyOutcome.Applied).handle(cmd(payload).copy(requiresCapability = "device.configDisplay")).status)
+    }
+
 }

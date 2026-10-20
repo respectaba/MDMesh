@@ -3,6 +3,7 @@ package com.mdmesh.core.config
 import com.mdmesh.core.kiosk.KioskApplier
 import com.mdmesh.core.store.ConfigStateStore
 import com.mdmesh.kiosk.KioskResult
+import com.mdmesh.policy.DisplayPolicyControl
 import com.mdmesh.policy.PolicyOutcome
 import com.mdmesh.policy.ReleasablePolicy
 import com.mdmesh.policy.TogglePolicy
@@ -30,10 +31,13 @@ class ConfigApplier(
     private val kiosk: KioskApplier,
     private val setLocationMode: (String) -> Unit,
     private val store: ConfigStateStore,
+    private val display: DisplayPolicyControl? = null,
 ) {
     private val mutex = Mutex()
 
     suspend fun apply(doc: ConfigApplyPayload): ConfigApplyResult = mutex.withLock {
+        // Validate the whole extension before any unrelated policy or saved delivery changes.
+        if (doc.managedDisplay?.valid() == false) return@withLock ConfigApplyResult(doc.revision, mapOf("display" to ConfigOutcome.failed("Invalid display settings")))
         // What came before: the last saved document, and the last delivered one if a failed section kept it unsaved.
         val previous = listOfNotNull(store.load(), store.delivered)
         // A changed configuration ends a Wi-Fi radio self-heal hold; a re-send of the same one does not (nor does the
@@ -64,6 +68,12 @@ class ConfigApplier(
         persist: Boolean = true,
     ): ConfigApplyResult {
         val outcomes = linkedMapOf<String, String>()
+        if (doc.managedDisplay?.valid() == false) return ConfigApplyResult(doc.revision, mapOf("display" to ConfigOutcome.failed("Invalid display settings")))
+        doc.managedDisplay?.let { settings ->
+            settings.brightness?.let { outcomes["display.brightness"] = toOutcome(display?.brightness(it.automatic, it.value)) }
+            settings.screenTimeoutSeconds?.let { outcomes["display.screenTimeout"] = toOutcome(display?.timeout(it)) }
+            settings.mediaVolumePercent?.let { outcomes["display.mediaVolume"] = toOutcome(display?.mediaVolume(it)) }
+        }
         for ((key, enabled) in doc.policies) {
             outcomes["$POLICIES$key"] = toOutcome(toggles[key]?.setEnabled(enabled))
         }

@@ -42,6 +42,7 @@ class CapabilityRegistry(
     /** Persisted `wifiRadio` off state (self-heal across reboots); in memory when not given. */
     private val wifiRadioState: WifiRadioOffState = InMemoryWifiRadioOffState(),
     private val managed: ManagedPolicyControl? = null,
+    private val display: DisplayPolicyControl? = null,
 ) {
 
     /**
@@ -70,7 +71,7 @@ class CapabilityRegistry(
      * registered strategies, so it can never drift from what can actually be applied.
      * Each entry corresponds to a row in `proto/registry.md` § policy.
      */
-    fun supportedPolicyKeys(): List<String> = (togglePolicies().keys + managed?.supportedKeys().orEmpty()).distinct()
+    fun supportedPolicyKeys(): List<String> = (togglePolicies().keys + managed?.supportedKeys().orEmpty() + display?.supportedKeys().orEmpty()).distinct()
 
     /** Convenience: resolve the live [DeviceControl] facade for this device. */
     fun deviceControl(): DeviceControl? {

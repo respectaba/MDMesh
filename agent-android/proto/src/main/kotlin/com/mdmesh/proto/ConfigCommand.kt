@@ -19,6 +19,7 @@ data class ConfigApplyPayload(
     val policies: Map<String, Boolean> = emptyMap(),
     val kiosk: KioskApplyPayload? = null,
     val location: ConfigLocation? = null,
+    val managedDisplay: ConfigDisplay? = null,
 )
 
 @Serializable
@@ -41,3 +42,18 @@ object ConfigOutcome {
     fun deferred(reason: String): String = "deferred: $reason"
     fun isFailed(outcome: String): Boolean = outcome.startsWith("failed")
 }
+
+/** Ezi extension: requires device.configDisplay, never silently sent to older configApply agents. */
+@Serializable
+data class ConfigDisplay(
+    val brightness: ConfigBrightness? = null,
+    val screenTimeoutSeconds: Int? = null,
+    val mediaVolumePercent: Int? = null,
+) {
+    fun valid(): Boolean =
+        (brightness == null || (if (brightness.automatic) brightness.value == null else brightness.value != null && brightness.value in 0..255)) &&
+        (screenTimeoutSeconds == null || screenTimeoutSeconds in 1..(Int.MAX_VALUE / 1000)) &&
+        (mediaVolumePercent == null || mediaVolumePercent in 0..100)
+}
+@Serializable
+data class ConfigBrightness(val automatic: Boolean, val value: Int? = null)

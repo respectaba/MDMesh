@@ -8,12 +8,16 @@ import com.mdmesh.core.store.InMemoryConfigStateStore
 import com.mdmesh.core.store.InMemoryKioskStateStore
 import com.mdmesh.kiosk.KioskController
 import com.mdmesh.kiosk.KioskResult
+import com.mdmesh.policy.DisplayDevice
+import com.mdmesh.policy.DisplayPolicyControl
 import com.mdmesh.policy.PolicyOutcome
 import com.mdmesh.policy.ReleasablePolicy
 import com.mdmesh.policy.TogglePolicy
 import com.mdmesh.policy.wifi.InMemoryWifiRadioOffState
 import com.mdmesh.policy.wifi.WifiRadio
 import com.mdmesh.policy.wifi.WifiRadioPolicy
+import com.mdmesh.proto.ConfigDisplay
+import com.mdmesh.proto.ConfigBrightness
 import com.mdmesh.proto.ConfigApplyPayload
 import com.mdmesh.proto.ConfigLocation
 import com.mdmesh.proto.ConfigOutcome
@@ -275,4 +279,47 @@ class ConfigApplierTest {
         assertFalse(ConfigApplier(emptyMap(), kiosk(FakeController()), {}, store).selfHealWifiRadio { null })
         assertEquals("n1", store.revision())
     }
+    private class DisplayFake : DisplayDevice {
+        var owner = true; var calls = 0; var automatic = false; var value = 0; var timeout = 0; var volume = 0; var refuse = false
+        override val sdkInt = 35
+        override fun isDeviceOwner() = owner
+        override fun setBrightnessMode(automatic: Boolean) { calls++; if (!refuse) this.automatic = automatic }
+        override fun brightnessMode() = automatic
+        override fun setBrightness(value: Int) { calls++; if (!refuse) this.value = value }
+        override fun brightness() = value
+        override fun maximumLockMillis() = 0L
+        override fun setTimeoutMillis(value: Int) { calls++; if (!refuse) timeout = value }
+        override fun timeoutMillis() = timeout
+        override fun mediaVolumeFixed() = false
+        override fun mediaVolumeMin() = 0
+        override fun mediaVolumeMax() = 10
+        override fun setMediaVolume(index: Int) { calls++; if (!refuse) volume = index }
+        override fun mediaVolume() = volume
+    }
+    @Test fun `display desired state persists and rechecks authority on boot reapply`() = runTest {
+        val d = DisplayFake(); val store = InMemoryConfigStateStore()
+        val a = ConfigApplier(emptyMap(), kiosk(FakeController()), {}, store, DisplayPolicyControl(d))
+        val doc = ConfigApplyPayload(revision = "display1", managedDisplay = ConfigDisplay(ConfigBrightness(false, 100), 30, 50))
+        val first = a.apply(doc)
+        assertTrue(first.outcomes.values.all { it == ConfigOutcome.APPLIED }); assertEquals(doc, store.load())
+        d.value = 20; d.timeout = 120000; d.volume = 2
+        a.reapplyPersisted(); assertEquals(100, d.value); assertEquals(30000, d.timeout); assertEquals(5, d.volume)
+        d.owner = false; val count = d.calls
+        assertTrue(a.reapplyPersisted()!!.outcomes.values.all { it == ConfigOutcome.UNSUPPORTED }); assertEquals(count, d.calls)
+    }
+    @Test fun `invalid display document cannot mutate other policies or save delivery`() = runTest {
+        val toggle = FakeToggle("wifi", PolicyOutcome.Applied); val d = DisplayFake(); val store = InMemoryConfigStateStore()
+        val a = ConfigApplier(mapOf("wifi" to toggle), kiosk(FakeController()), {}, store, DisplayPolicyControl(d))
+        val invalid = ConfigApplyPayload(revision = "bad", policies = mapOf("wifi" to false), managedDisplay = ConfigDisplay(screenTimeoutSeconds = Int.MAX_VALUE))
+        assertFalse(ConfigApplier.succeeded(a.apply(invalid))); assertNull(toggle.last); assertNull(store.load()); assertNull(store.delivered); assertEquals(0, d.calls)
+    }
+    @Test fun `refused display changes never persist a successful revision and removing management stops reapply`() = runTest {
+        val d = DisplayFake(); val store = InMemoryConfigStateStore()
+        val a = ConfigApplier(emptyMap(), kiosk(FakeController()), {}, store, DisplayPolicyControl(d))
+        val doc = ConfigApplyPayload(revision = "refused", managedDisplay = ConfigDisplay(mediaVolumePercent = 90))
+        d.refuse = true; assertFalse(ConfigApplier.succeeded(a.apply(doc))); assertNull(store.revision())
+        d.refuse = false; a.apply(doc); a.apply(ConfigApplyPayload(revision = "removed")); val count = d.calls
+        d.volume = 3; a.reapplyPersisted(); assertEquals(count, d.calls); assertEquals(3, d.volume)
+    }
+
 }
