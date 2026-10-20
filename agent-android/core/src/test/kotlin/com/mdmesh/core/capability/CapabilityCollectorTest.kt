@@ -1,5 +1,6 @@
 package com.mdmesh.core.capability
 
+import com.mdmesh.proto.DeviceAction
 import com.mdmesh.proto.OemCapability
 import com.mdmesh.proto.RemoteControlCapability
 import org.junit.Assert.assertEquals
@@ -13,7 +14,7 @@ import org.junit.Test
  */
 class CapabilityCollectorTest {
 
-    private fun collector(isDeviceOwner: () -> Boolean) = CapabilityCollector(
+    private fun collector(deviceActionKeys: List<String> = listOf("lock"), isDeviceOwner: () -> Boolean) = CapabilityCollector(
         agentVersion = "0.2.5",
         agentPackage = "com.mdmesh.agent",
         isDeviceOwner = isDeviceOwner,
@@ -21,7 +22,7 @@ class CapabilityCollectorTest {
         remoteControl = { RemoteControlCapability() },
         oem = { OemCapability() },
         deviceOwnerAppManagementKeys = listOf("silentInstall"),
-        deviceActionKeys = { listOf("lock") },
+        deviceActionKeys = { deviceActionKeys },
         buildInfo = BuildInfo(sdkInt = 33, release = "13", manufacturer = "Test", model = "Unit"),
     )
 
@@ -51,5 +52,31 @@ class CapabilityCollectorTest {
         assertEquals("Unit", m.device.model)
         assertEquals(listOf("wifi", "bluetooth"), m.capabilities.policy)
         assertEquals(listOf("lock"), m.capabilities.device)
+    }
+
+    @Test
+    fun `advertises configApply as a device action`() {
+        val m = collector(deviceActionKeys = DeviceAction.ADVERTISED_KEYS) { true }.collect("dev-3")
+        assertTrue(m.capabilities.device.contains(DeviceAction.CONFIG_APPLY_KEY))
+    }
+
+    @Test
+    fun `device action authority is reprobed without mutating an earlier matrix`() {
+        var owner = false
+        val collector = CapabilityCollector(
+            agentVersion = "synthetic", agentPackage = "com.mdmesh.agent",
+            isDeviceOwner = { owner }, policyKeys = { emptyList() },
+            remoteControl = { RemoteControlCapability() }, oem = { OemCapability() },
+            deviceActionKeys = { DeviceAction.supportedKeys(owner, owner, 35, owner) },
+            buildInfo = BuildInfo(35, "15", "Synthetic", "Unit"),
+        )
+        val before = collector.collect("synthetic-device")
+        owner = true
+        val after = collector.collect("synthetic-device")
+        assertFalse("wipe" in before.capabilities.device)
+        assertTrue("wipe" in after.capabilities.device)
+        assertTrue("configApply" in after.capabilities.device)
+        owner = false
+        assertFalse("configApply" in collector.collect("synthetic-device").capabilities.device)
     }
 }

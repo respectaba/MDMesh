@@ -55,3 +55,19 @@ labels have not changed. Display/volume/launcher settings, fetch-location,
 removal and consented remote view remain subsequent work.
 
 Qualification for managed-policy source: 84 JVM tests (core/policy/protocol) and debug APK build pass. No Android instrumentation or enrolled-device acceptance was run.
+
+## Provisioning-agent 0.3.4 source parity
+
+Imported only agent-android and proto changes from upstream v0.3.4 onto the
+pinned integration ancestry. This restores protocol 1.4 config application,
+persisted desired state and reapplication, install-integrity handling and Wi-Fi
+failsafe behavior already present in the public provisioning release. Ezi's
+command replay safeguards, managed update/password handlers and live authority
+probes remain intact. Deferred policies produce a failed/non-applied outcome.
+Regression coverage checks that changing device authority updates the next
+capability matrix without mutating an earlier snapshot.
+
+Local core/policy/protocol tests, debug APK assembly and app/core/policy Android
+lint pass. Instrumentation tests were compiled, not executed on hardware. No
+release signing, platform capability-label change, APK replacement or device
+command occurred. Matching release-key custody remains an external dependency.

@@ -13,6 +13,7 @@ private fun outcome(command: CommandEnvelope, result: PolicyOutcome, detail: Str
     PolicyOutcome.Applied -> CommandResults.done(command, detail)
     PolicyOutcome.Unsupported -> CommandResults.unsupported(command)
     is PolicyOutcome.Failed -> CommandResults.failed(command, result.reason)
+    is PolicyOutcome.Deferred -> CommandResults.failed(command, "Policy deferred; not applied: " + result.reason)
 }
 
 class SystemUpdatePolicyHandler(private val control: ManagedPolicyControl) : CommandHandler {
