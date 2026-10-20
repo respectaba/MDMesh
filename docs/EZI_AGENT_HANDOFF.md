@@ -71,3 +71,21 @@ Local core/policy/protocol tests, debug APK assembly and app/core/policy Android
 lint pass. Instrumentation tests were compiled, not executed on hardware. No
 release signing, platform capability-label change, APK replacement or device
 command occurred. Matching release-key custody remains an external dependency.
+
+## Managed display settings (source only)
+
+Adds strict Device Owner handlers for brightness, screen timeout and media-stream
+volume. Brightness/timeout require API28+. No WRITE_SETTINGS bypass is requested;
+media volume uses the normal MODIFY_AUDIO_SETTINGS permission. Alarm/ringer
+streams, mute restrictions and aggregate maximum-lock policy are preserved.
+Immediate readback gates applied outcomes; exceptions expose only a fixed safe
+message, and partial failures warn that earlier changes may remain.
+
+The optional config.apply managedDisplay section uses a separate
+device.configDisplay capability. Successful documents persist/reapply after boot.
+Removing a setting stops reapplication and keeps its last OS value. Unsupported
+fields remain explicitly unsupported in per-setting results; an aggregate
+protocol revision must not be interpreted as every field being enforced.
+Malformed documents are rejected before unrelated policies or delivery state
+change. No native AGENT_APPLIED_FIELDS, release APK, version or checksum changed.
+Release signing, native translation and real test-device acceptance are pending.

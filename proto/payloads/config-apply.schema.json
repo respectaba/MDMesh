@@ -26,6 +26,7 @@
         "theme": { "type": "object", "properties": { "backgroundColor": {"type":"string"}, "textColor": {"type":"string"}, "iconSize": {"type":"string"} } }
       }
     },
+    "managedDisplay": {"type":"object","additionalProperties":false,"description":"Ezi extension. Requires device.configDisplay capability. Persist/reapply only after no failed outcomes; omitted settings stop being managed and retain their last OS value.","properties":{"brightness":{"type":"object","additionalProperties":false,"required":["automatic"],"properties":{"automatic":{"type":"boolean"},"value":{"type":"integer","minimum":0,"maximum":255}}},"screenTimeoutSeconds":{"type":"integer","minimum":1,"maximum":2147483},"mediaVolumePercent":{"type":"integer","minimum":0,"maximum":100}}},
     "location": { "type": "object", "properties": { "mode": { "enum": ["passive", "active", "off"], "description": "active = fresh fix each check-in (GPS), passive = last-known (console: Last known (passive), formerly Network), off = read no location (Do not track; 1.4, older agents treat it as passive and the server drops what they report)" } } }
   }
 }

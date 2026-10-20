@@ -97,3 +97,23 @@ string, except `configApply`.
 | `remote.stopSession` | — | `{ sessionId }`. Planned: no agent handler yet. |
 
 Per-type payload JSON Schemas go in `proto/payloads/` as the registry grows.
+
+## Ezi display policy extensions (source only)
+
+| Type | Required capability | Payload |
+|---|---|---|
+| `policy.brightness` | `policy.brightness` | `{ automatic: true }` or `{ automatic: false, value: 0..255 }` |
+| `policy.screenTimeout` | `policy.screenTimeout` | `{ seconds: 1..2147483 }`; refuses a longer timeout than the aggregate lock policy |
+| `policy.mediaVolume` | `policy.mediaVolume` | `{ percent: 0..100 }`; media stream only, rounded to the nearest supported step |
+
+All three require current Device Owner authority. Brightness/timeout also require
+API28+. Fixed-volume devices omit mediaVolume. No global mute, alarm/ringer
+volume, WRITE_SETTINGS consent, or lock-policy relaxation is performed. DONE
+requires immediate readback; refusal reports failure and may leave an earlier
+part of a multi-step change in place. Imperative commands change settings once. The `config.apply` managedDisplay
+extension persists/reapplies them after boot and requires the separate
+`device.configDisplay` capability; older agents must never receive it. Omitted
+settings stop being managed and retain their last OS value. They are not available on the existing signed APK
+or advertised as enforced by the native platform until release acceptance.
+
+Android API reference: https://developer.android.com/reference/android/app/admin/DevicePolicyManager#setSystemSetting(android.content.ComponentName,%20java.lang.String,%20java.lang.String)

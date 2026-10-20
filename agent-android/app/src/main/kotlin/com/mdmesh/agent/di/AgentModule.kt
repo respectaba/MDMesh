@@ -39,6 +39,9 @@ import com.mdmesh.core.kiosk.KioskApplier
 import com.mdmesh.core.command.handlers.PolicyApplyHandler
 import com.mdmesh.core.command.handlers.SystemUpdatePolicyHandler
 import com.mdmesh.core.command.handlers.PasswordPolicyHandler
+import com.mdmesh.core.command.handlers.DisplayPolicyHandler
+import com.mdmesh.policy.DisplayPolicyControl
+import com.mdmesh.policy.AndroidDisplayDevice
 import com.mdmesh.policy.ManagedPolicyControl
 import com.mdmesh.policy.AndroidManagedPolicyControl
 import com.mdmesh.core.device.AppInventoryCollector
@@ -106,8 +109,8 @@ object AgentModule {
 
     @Provides
     @Singleton
-    fun provideCapabilityRegistry(@ApplicationContext context: Context, handle: DpmHandle, managed: ManagedPolicyControl): CapabilityRegistry =
-        CapabilityRegistry(handle, wifiRadio = AndroidWifiRadio.from(context), wifiRadioState = SharedPrefsWifiRadioOffState(context), managed = managed)
+    fun provideCapabilityRegistry(@ApplicationContext context: Context, handle: DpmHandle, managed: ManagedPolicyControl, display: DisplayPolicyControl): CapabilityRegistry =
+        CapabilityRegistry(handle, wifiRadio = AndroidWifiRadio.from(context), wifiRadioState = SharedPrefsWifiRadioOffState(context), managed = managed, display = display)
 
     @Provides
     @Singleton
@@ -209,6 +212,22 @@ object AgentModule {
     @Provides
     @IntoSet
     fun providePasswordPolicyHandler(control: ManagedPolicyControl): CommandHandler = PasswordPolicyHandler(control)
+
+    @Provides
+    @Singleton
+    fun provideDisplayControl(@ApplicationContext context: Context, handle: DpmHandle): DisplayPolicyControl = DisplayPolicyControl(AndroidDisplayDevice(context, handle))
+
+    @Provides
+    @IntoSet
+    fun provideBrightnessHandler(control: DisplayPolicyControl): CommandHandler = DisplayPolicyHandler(control, "brightness")
+
+    @Provides
+    @IntoSet
+    fun provideTimeoutHandler(control: DisplayPolicyControl): CommandHandler = DisplayPolicyHandler(control, "screenTimeout")
+
+    @Provides
+    @IntoSet
+    fun provideVolumeHandler(control: DisplayPolicyControl): CommandHandler = DisplayPolicyHandler(control, "mediaVolume")
 
     // --- Command handlers (multibound). Add a command == add one @IntoSet provider. ---
 
@@ -368,7 +387,8 @@ object AgentModule {
         kiosk: KioskApplier,
         location: LocationModeStore,
         store: ConfigStateStore,
-    ): ConfigApplier = ConfigApplier(toggles, kiosk, location::set, store)
+        display: DisplayPolicyControl,
+    ): ConfigApplier = ConfigApplier(toggles, kiosk, location::set, store, display)
 
     @Provides
     @IntoSet

@@ -1,5 +1,7 @@
 package com.mdmesh.core.store
 
+import com.mdmesh.proto.ConfigDisplay
+import com.mdmesh.proto.ConfigBrightness
 import com.mdmesh.proto.ConfigApplyPayload
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertNull
@@ -22,7 +24,7 @@ class ConfigStateStoreTest {
 
     @Test
     fun `codec round-trips and rejects junk`() {
-        val doc = ConfigApplyPayload(revision = "r2", configurationId = 1)
+        val doc = ConfigApplyPayload(revision = "r2", configurationId = 1, managedDisplay = ConfigDisplay(ConfigBrightness(false, 0), 30, 0))
         assertEquals(doc, ConfigStateCodec.decode(ConfigStateCodec.encode(doc)))
         assertNull(ConfigStateCodec.decode("{not json"))
     }
