@@ -28,6 +28,7 @@ import com.mdmesh.policy.wifi.WifiPolicyFactory
  */
 class CapabilityRegistry(
     private val handle: DpmHandle,
+    private val managed: ManagedPolicyControl? = null,
 ) {
 
     /**
@@ -52,7 +53,7 @@ class CapabilityRegistry(
      * registered strategies, so it can never drift from what can actually be applied.
      * Each entry corresponds to a row in `proto/registry.md` § policy.
      */
-    fun supportedPolicyKeys(): List<String> = togglePolicies().keys.toList()
+    fun supportedPolicyKeys(): List<String> = (togglePolicies().keys + managed?.supportedKeys().orEmpty()).distinct()
 
     /** Convenience: resolve the live [DeviceControl] facade for this device. */
     fun deviceControl(): DeviceControl? {

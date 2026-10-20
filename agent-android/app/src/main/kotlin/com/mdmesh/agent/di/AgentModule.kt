@@ -3,6 +3,7 @@ package com.mdmesh.agent.di
 import android.app.admin.DevicePolicyManager
 import android.content.ComponentName
 import android.content.Context
+import android.os.Build
 import com.mdmesh.agent.BuildConfig
 import com.mdmesh.agent.admin.AdminReceiver
 import com.mdmesh.core.capability.CapabilityCollector
@@ -32,6 +33,10 @@ import com.mdmesh.core.power.PowerModeStore
 import com.mdmesh.core.command.handlers.KioskEnterHandler
 import com.mdmesh.core.command.handlers.KioskExitHandler
 import com.mdmesh.core.command.handlers.PolicyApplyHandler
+import com.mdmesh.core.command.handlers.SystemUpdatePolicyHandler
+import com.mdmesh.core.command.handlers.PasswordPolicyHandler
+import com.mdmesh.policy.ManagedPolicyControl
+import com.mdmesh.policy.AndroidManagedPolicyControl
 import com.mdmesh.core.device.AppInventoryCollector
 import com.mdmesh.core.device.HardwareIdCollector
 import com.mdmesh.core.sync.HardwareIdSource
@@ -91,8 +96,8 @@ object AgentModule {
 
     @Provides
     @Singleton
-    fun provideCapabilityRegistry(handle: DpmHandle): CapabilityRegistry =
-        CapabilityRegistry(handle)
+    fun provideCapabilityRegistry(handle: DpmHandle, managed: ManagedPolicyControl): CapabilityRegistry =
+        CapabilityRegistry(handle, managed)
 
     @Provides
     @Singleton
@@ -120,19 +125,30 @@ object AgentModule {
         remoteTierDetector: RemoteControlTierDetector,
         oemAdapter: OemAdapter,
         handle: DpmHandle,
+        resetTokens: ResetPasswordTokenStore,
     ): CapabilityCollector {
-        val deviceOwner = handle.dpm.isDeviceOwnerApp(context.packageName)
         return CapabilityCollector(
             agentVersion = BuildConfig.VERSION_NAME,
             agentPackage = context.packageName,
-            isDeviceOwner = deviceOwner,
-            capabilityRegistry = registry,
-            remoteTierDetector = remoteTierDetector,
-            oemAdapter = oemAdapter,
+            // A lambda, not a value: this collector is a @Singleton and Device-Owner status only
+            // flips to true partway through provisioning — see CapabilityCollector.collect().
+            isDeviceOwner = { handle.dpm.isDeviceOwnerApp(context.packageName) },
+            policyKeys = registry::supportedPolicyKeys,
+            remoteControl = remoteTierDetector::capability,
+            oem = oemAdapter::capability,
             // Silent install needs Device Owner — advertise app.silentInstall only when we have it, so
             // the server's capability gate won't queue an app.install we can't perform.
-            appManagementKeys = if (deviceOwner) AppManagement.DEVICE_OWNER_KEYS else emptyList(),
-            deviceActionKeys = DeviceAction.ADVERTISED_KEYS,
+            deviceOwnerAppManagementKeys = AppManagement.DEVICE_OWNER_KEYS,
+            deviceActionKeys = {
+                runCatching {
+                    val owner = handle.dpm.isDeviceOwnerApp(context.packageName)
+                    val admin = handle.dpm.isAdminActive(handle.admin)
+                    val resetReady = owner && admin && Build.VERSION.SDK_INT >= 26 && runCatching {
+                        resetTokens.token()?.size == 32 && handle.dpm.isResetPasswordTokenActive(handle.admin)
+                    }.getOrDefault(false)
+                    DeviceAction.supportedKeys(owner, admin, Build.VERSION.SDK_INT, resetReady)
+                }.getOrDefault(emptyList())
+            },
         )
     }
 
@@ -171,6 +187,18 @@ object AgentModule {
     @Provides
     fun providePolicyToggles(registry: CapabilityRegistry): Map<String, TogglePolicy> =
         registry.togglePolicies()
+
+    @Provides
+    @Singleton
+    fun provideManagedPolicies(@ApplicationContext context: Context, handle: DpmHandle): ManagedPolicyControl = AndroidManagedPolicyControl(context, handle)
+
+    @Provides
+    @IntoSet
+    fun provideSystemUpdatePolicyHandler(control: ManagedPolicyControl): CommandHandler = SystemUpdatePolicyHandler(control)
+
+    @Provides
+    @IntoSet
+    fun providePasswordPolicyHandler(control: ManagedPolicyControl): CommandHandler = PasswordPolicyHandler(control)
 
     // --- Command handlers (multibound). Add a command == add one @IntoSet provider. ---
 

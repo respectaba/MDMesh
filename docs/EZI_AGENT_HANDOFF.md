@@ -21,3 +21,37 @@ agent APK checksum and the platform's AGENT_APPLIED_FIELDS remain unchanged.
 Stored-only settings, location/removal commands and consented remote view are
 subsequent work. The existing signing key is required before publishing an update
 that enrolled Device Owner agents can accept.
+
+## Managed policy handlers (source only)
+
+The next source change adds `policy.systemUpdatePolicy` and
+`policy.passwordRequirements`. Update modes are default/automatic/windowed/
+postponed; windows use device-local time and Android's postponement limits.
+Password payloads accept only quality/minimumLength, never a new passcode or a
+failed-attempt wipe threshold. Setting requirements does not prove that the
+person's current credential already meets them.
+
+Advertisement is per device and read on each collection. Update/password policy
+requires Device Owner; password additionally requires a secure lock screen and
+excludes automotive builds. Owner-only remote actions disappear when authority
+is absent, while classic active administrators may still lock. Passcode reset
+is advertised only on API26+ with an active locally registered token. The two
+small upstream ownership-probe commits are explicitly cherry-picked with credit;
+no unrelated upstream release is merged.
+
+The public provisioning APK currently served by mdmesh.eziaba.com is version 0.3.4
+(code 304), signed with certificate SHA256
+`3f4b357285e895f0f0bd90fe5fa0cd1d530cdad55a48cf6888097d508302c5fc`;
+it matches the platform's QR signature pin. Installed versions may differ per
+device/tenant. The new fork has no signing secret; no Android signing reference
+was found among the dedicated project's registered secret names. An update
+requires the matching private signing key and a higher version code. Before a
+release, audit parity with the currently served agent; this pinned-source debug
+build is not an approved downgrade or a replacement fleet APK.
+
+Native platform configuration translation, protocol integration and signed
+staging acceptance remain required. Existing platform checksum and enforced-field
+labels have not changed. Display/volume/launcher settings, fetch-location,
+removal and consented remote view remain subsequent work.
+
+Qualification for managed-policy source: 84 JVM tests (core/policy/protocol) and debug APK build pass. No Android instrumentation or enrolled-device acceptance was run.

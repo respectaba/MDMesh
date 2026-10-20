@@ -16,8 +16,9 @@ with the agent's capability advertisement and the server's command catalog.
 | `camera` | disable camera | 24 | |
 | `screenshots` | disable screenshots | 24 | |
 | `kioskLockTask` | COSU lock-task kiosk | 24 | setLockTaskPackages/Features |
-| `passwordComplexity` | password policy | 31 | setRequiredPasswordComplexity (setPasswordQuality deprecated @26) |
-| `systemUpdatePolicy` | OS update windows | 24 | |
+| `passwordComplexity` | password policy | 31 | reserved complexity API; not advertised by the legacy-quality handler |
+| `systemUpdatePolicy` | OS update policy / device-local window | 24 | Device Owner only |
+| `passwordRequirements` | password quality and minimum length | 24 | Device Owner + secure lock screen; requirements do not prove current credential compliance |
 | `factoryResetProtection` | FRP policy | 30 | setFactoryResetProtectionPolicy |
 
 ### appManagement
@@ -40,6 +41,8 @@ Advertised as an object (`tier`, `screenCapture`, `inputInjection`, `transport`)
 |------|--------------------|------------------|
 | `config.sync` | — | none (triggers a full reconcile) |
 | `policy.apply` | the specific policy key | `{ policy: "wifi", value: false }` |
+| `policy.systemUpdatePolicy` | `policy.systemUpdatePolicy` | `{ mode: 0..3, from?: "HH:MM", to?: "HH:MM" }`; times required only for mode 2 |
+| `policy.passwordRequirements` | `policy.passwordRequirements` | `{ quality: "NONE"|"NUMERIC"|"NUMERIC_COMPLEX"|"ALPHANUMERIC"|"COMPLEX", minimumLength: 0..16 }`; no wipe threshold or passcode |
 | `app.install` | `silentInstall` | `{ url, packageName, versionCode, sha256, runAfterInstall }` |
 | `app.uninstall` | `silentUninstall` | `{ packageName }` |
 | `app.launch` | — | `{ packageName, activity? }` |
