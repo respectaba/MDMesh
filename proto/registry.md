@@ -130,3 +130,20 @@ privacy is checked again after awaiting the fix; a changed gate discards it.
 No collection mode or permission is changed. Native permission/tenant/retention
 gates and signed release acceptance are still required before exposing this
 source-only command in the platform.
+
+## Ezi launcher appearance extension (source only)
+
+`kiosk.appearance` requires exact `device.kioskAppearance`, current Device Owner/
+admin authority and an already active launcher-mode kiosk. It cannot create kiosk,
+change allowed applications, exit credentials, feature toggles or volume policies.
+The strict patch accepts backgroundColor/textColor (#RRGGBB), iconSize
+(SMALL/MEDIUM/LARGE) and headerText (plain text, at most256 UTF16 units, no control
+characters). Missing fields retain existing values; explicit null restores the
+legacy default. Empty header text hides the header. No template is evaluated and
+no remote background image is downloaded. The platform must resolve authorized
+per-device/company header values before sending a patch.
+
+The patch persists through the kiosk store. Appearance-only flow updates redraw
+without re-entering lock task or launching a pinned application. DONE means the
+appearance was saved, not physical-screen acceptance. Existing signed agents and
+native enforced-field labels/checksums are unchanged pending signed staging.

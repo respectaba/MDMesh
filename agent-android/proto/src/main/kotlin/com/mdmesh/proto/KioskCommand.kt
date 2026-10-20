@@ -24,7 +24,9 @@ data class KioskApplyPayload(
     val exitMode: String = "gesture",
     val password: String? = null,
     val theme: KioskThemeDto = KioskThemeDto(),
-)
+) {
+    fun isAppearanceOnlyChange(previous: KioskApplyPayload?): Boolean = previous != null && previous.copy(theme = theme) == this
+}
 
 @Serializable
 data class KioskFeaturesDto(
@@ -46,4 +48,8 @@ data class KioskThemeDto(
     val backgroundColor: String? = null,
     val textColor: String? = null,
     val iconSize: String? = null,
-)
+    /** Resolved plain text: null keeps the legacy title, empty hides it. No device-side template evaluation. */
+    val headerText: String? = null,
+) {
+    fun validHeader(): Boolean = headerText?.let { it.length <= 256 && it.none(Char::isISOControl) } ?: true
+}

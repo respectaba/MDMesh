@@ -37,6 +37,7 @@ import com.mdmesh.core.command.handlers.DeviceWipeHandler
 import com.mdmesh.core.config.ConfigApplier
 import com.mdmesh.core.location.LocationModeStore
 import com.mdmesh.core.power.PowerModeStore
+import com.mdmesh.core.command.handlers.KioskAppearanceHandler
 import com.mdmesh.core.command.handlers.KioskEnterHandler
 import com.mdmesh.core.command.handlers.KioskExitHandler
 import com.mdmesh.core.kiosk.AndroidKioskHomeSwitch
@@ -334,6 +335,11 @@ object AgentModule {
 
     @Provides @IntoSet
     fun provideKioskEnterHandler(applier: KioskApplier): CommandHandler = KioskEnterHandler(applier)
+
+    @Provides @IntoSet
+    fun provideKioskAppearanceHandler(applier: KioskApplier, handle: DpmHandle): CommandHandler = KioskAppearanceHandler(applier) {
+        runCatching { handle.dpm.isAdminActive(handle.admin) && handle.dpm.isDeviceOwnerApp(handle.admin.packageName) }.getOrDefault(false)
+    }
 
     @Provides @IntoSet
     fun provideKioskExitHandler(applier: KioskApplier): CommandHandler = KioskExitHandler(applier)

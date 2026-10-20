@@ -100,3 +100,13 @@ fixes. Cancellation propagates and failure diagnostics contain no coordinates.
 No native command mapping, release signing, location permission grant or real
 hardware invocation occurred. Platform retention and per-tenant location scope
 must be enforced during later signed integration.
+
+## Launcher appearance (source only)
+
+Adds an exact-capability guarded appearance patch for an already active managed
+launcher. It preserves allowed apps, exit credentials, features, lock-task/HOME
+claims and volume settings. Colors/icon sizes are validated; bounded header text
+is rendered as plain text. Null restores the legacy default and empty hides the
+header. The store persists changes; appearance-only redraw skips lock-task/pinned
+app entry. This source does not evaluate templates, load background URLs or claim
+hardware acceptance. Native metadata translation and release signing remain.

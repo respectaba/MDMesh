@@ -47,7 +47,7 @@ object DeviceAction {
     /** Keys (after the `device.` prefix) advertised in `capabilities.device`. */
     val ADVERTISED_KEYS: List<String> = listOf(
         "lock", "reboot", "lockscreenMessage", "alert", "ring", "ringStop",
-        "passcodeReset", "wipe", "powerMode", "locationMode", "configApply", "configDisplay", "fetchLocation", LOCATION_OFF_KEY,
+        "passcodeReset", "wipe", "powerMode", "locationMode", "configApply", "configDisplay", "kioskAppearance", "fetchLocation", LOCATION_OFF_KEY,
     )
 
     /** Probe facts, never a fleet-wide assumption. Unknown future keys fail closed. */
@@ -56,7 +56,7 @@ object DeviceAction {
             when (key) {
                 "lock" -> adminActive
                 "reboot" -> deviceOwner && adminActive && sdkInt >= 24
-                "wipe", "lockscreenMessage", "configApply" -> deviceOwner && adminActive
+                "wipe", "lockscreenMessage", "configApply", "kioskAppearance" -> deviceOwner && adminActive
                 "fetchLocation" -> deviceOwner && adminActive && sdkInt >= 30 && locationReady
                 "configDisplay" -> deviceOwner && adminActive && sdkInt >= 28
                 "passcodeReset" -> deviceOwner && adminActive && sdkInt >= 26 && resetReady
