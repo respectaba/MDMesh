@@ -5,6 +5,7 @@ import com.mdmesh.core.store.InMemoryKioskStateStore
 import com.mdmesh.core.store.KioskStateStore
 import com.mdmesh.kiosk.KioskController
 import com.mdmesh.kiosk.KioskResult
+import com.mdmesh.proto.KioskThemeDto
 import com.mdmesh.proto.KioskApplyPayload
 import com.mdmesh.proto.KioskFeaturesDto
 import kotlinx.coroutines.CompletableDeferred
@@ -191,4 +192,37 @@ class KioskApplierTest {
         assertFalse(a.isPersisted())
         assertEquals(listOf("claim:false", "oem"), h.log)
     }
+    @Test fun `appearance update preserves app access password features and never calls lock task or HOME`() = runTest {
+        val original = KioskApplyPayload(allowedPackages = listOf("com.synthetic.app"), password = "synthetic-exit-secret", features = KioskFeaturesDto(lockVolume = true), theme = KioskThemeDto("#112233", "#ffffff", "LARGE"))
+        val store = InMemoryKioskStateStore(original); val controller = FakeController(KioskResult.Ok); val host = FakeHome()
+        val a = KioskApplier(controller, store, host, home) { true }
+        val patch = KioskAppearancePatch(setOf("headerText"), KioskThemeDto(headerText = "Synthetic company"))
+        assertEquals(KioskResult.Ok, a.updateAppearance(patch) { true })
+        assertEquals(original.copy(theme = original.theme.copy(headerText = "Synthetic company")), store.load())
+        assertNull(controller.entered); assertFalse(controller.exited); assertTrue(controller.volume.isEmpty()); assertTrue(host.log.isEmpty())
+    }
+    @Test fun `appearance update cannot create kiosk affect a pinned app or revive an inactive launcher`() = runTest {
+        val patch = KioskAppearancePatch(setOf("iconSize"), KioskThemeDto(iconSize = "SMALL"))
+        for ((payload, locked) in listOf(null to true, KioskApplyPayload(mode = "single") to true, KioskApplyPayload() to false)) {
+            val store = InMemoryKioskStateStore(payload); val c = FakeController(KioskResult.Ok)
+            assertEquals(KioskResult.Unsupported, KioskApplier(c, store, FakeHome(), home) { locked }.updateAppearance(patch) { true })
+            assertEquals(payload, store.load()); assertNull(c.entered)
+        }
+    }
+    @Test fun `appearance patch rejects malformed colors oversized headers and authority loss before save`() = runTest {
+        val original = KioskApplyPayload(); val store = InMemoryKioskStateStore(original); val c = FakeController(KioskResult.Ok)
+        val a = KioskApplier(c, store, FakeHome(), home) { true }
+        for (patch in listOf(KioskAppearancePatch(emptySet(), KioskThemeDto()), KioskAppearancePatch(setOf("headerText"), KioskThemeDto(headerText = "x".repeat(257))), KioskAppearancePatch(setOf("backgroundColor"), KioskThemeDto(backgroundColor = "https://invalid.example")), KioskAppearancePatch(setOf("iconSize"), KioskThemeDto(iconSize = "HUGE")))) assertTrue(a.updateAppearance(patch) { true } is KioskResult.Failed)
+        var checks = 0
+        assertEquals(KioskResult.Unsupported, a.updateAppearance(KioskAppearancePatch(setOf("headerText"), KioskThemeDto(headerText = "safe"))) { ++checks == 1 })
+        assertEquals(original, store.load()); assertNull(c.entered)
+    }
+    @Test fun `bad header cannot enter kiosk and explicit null resets only the selected appearance field`() = runTest {
+        val c = FakeController(KioskResult.Ok); val store = InMemoryKioskStateStore(); val a = KioskApplier(c, store, FakeHome(), home) { true }
+        assertTrue(a.enter(KioskApplyPayload(theme = KioskThemeDto(headerText = "bad\u0000header"))) is KioskResult.Failed); assertNull(c.entered); assertNull(store.load())
+        val original = KioskApplyPayload(theme = KioskThemeDto("#112233", "#ffffff", "LARGE", "Custom")); store.save(original)
+        a.updateAppearance(KioskAppearancePatch(setOf("headerText"), KioskThemeDto())) { true }
+        assertEquals(original.copy(theme = original.theme.copy(headerText = null)), store.load())
+    }
+
 }

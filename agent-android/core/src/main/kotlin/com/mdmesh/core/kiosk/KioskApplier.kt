@@ -36,6 +36,7 @@ class KioskApplier(
     suspend fun enter(p: KioskApplyPayload): KioskResult = mutex.withLock { enterLocked(p) }
 
     private suspend fun enterLocked(p: KioskApplyPayload): KioskResult {
+        if (!p.theme.validHeader()) return KioskResult.Failed("Invalid launcher header")
         // Already in this kiosk: no re-entry or relaunch, but re-assert the volume lock (it may have failed before).
         if (store.load() == p && isLockTaskActive()) return applyVolume(p, KioskResult.Ok)
         val features = lockTaskFeatures(
@@ -57,6 +58,16 @@ class KioskApplier(
             }
             else -> { home.setClaimEnabled(false); r } // never leave a non-kiosk device claiming HOME
         }
+    }
+
+    /** Never creates kiosk, changes app access, or takes a new HOME/lock-task claim. */
+    suspend fun updateAppearance(patch: KioskAppearancePatch, authorized: () -> Boolean): KioskResult = mutex.withLock {
+        if (!patch.valid()) return@withLock KioskResult.Failed("Invalid launcher appearance")
+        if (!authorized()) return@withLock KioskResult.Unsupported
+        val current = store.load() ?: return@withLock KioskResult.Unsupported
+        if (current.mode != "launcher" || !isLockTaskActive() || !authorized()) return@withLock KioskResult.Unsupported
+        store.save(current.copy(theme = patch.applyTo(current.theme)))
+        KioskResult.Ok
     }
 
     /** Volume is its own opt-in (it mutes the device); anything else releases a lock set earlier. */

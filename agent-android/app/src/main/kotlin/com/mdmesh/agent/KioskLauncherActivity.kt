@@ -92,7 +92,12 @@ class KioskLauncherActivity : ComponentActivity() {
     }
 
     private fun applyState(p: KioskApplyPayload?) {
+        val appearanceOnly = p?.isAppearanceOnlyChange(active) == true
         active = p
+        if (appearanceOnly && p?.mode == "launcher") {
+            setContentView(launcherGrid(p))
+            return // Redraw only: never re-enter lock task because a theme changed.
+        }
         if (p == null) {
             stopLockTaskSafely()
             setContentView(idleView())
@@ -215,7 +220,11 @@ class KioskLauncherActivity : ComponentActivity() {
             setPadding(dp(24), dp(28), dp(24), dp(12))
             layoutParams = ViewGroup.LayoutParams(MATCH, ViewGroup.LayoutParams.WRAP_CONTENT)
         }
-        column.addView(text("MDMesh Kiosk", 20f, fg, bold = true))
+        val header = p.theme.headerText ?: "MDMesh Kiosk"
+        if (header.isNotEmpty()) column.addView(text(header.take(256), 20f, fg, bold = true).apply {
+            maxLines = 2
+            ellipsize = android.text.TextUtils.TruncateAt.END
+        })
         if (rendered == 0) {
             column.addView(
                 text(
