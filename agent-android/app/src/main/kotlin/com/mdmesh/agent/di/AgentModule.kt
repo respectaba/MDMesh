@@ -17,6 +17,7 @@ import com.mdmesh.core.command.handlers.AppIconsHandler
 import com.mdmesh.core.command.handlers.AppInstallHandler
 import com.mdmesh.core.command.handlers.AppScanHandler
 import com.mdmesh.core.command.handlers.AppUninstallHandler
+import com.mdmesh.core.command.handlers.ConfigApplyHandler
 import com.mdmesh.core.command.handlers.ConfigSyncHandler
 import com.mdmesh.core.command.handlers.DeviceAlertHandler
 import com.mdmesh.core.command.handlers.DeviceLockHandler
@@ -28,10 +29,13 @@ import com.mdmesh.core.command.handlers.DeviceLocationModeHandler
 import com.mdmesh.core.command.handlers.DevicePowerModeHandler
 import com.mdmesh.core.command.handlers.DeviceRingStopHandler
 import com.mdmesh.core.command.handlers.DeviceWipeHandler
+import com.mdmesh.core.config.ConfigApplier
 import com.mdmesh.core.location.LocationModeStore
 import com.mdmesh.core.power.PowerModeStore
 import com.mdmesh.core.command.handlers.KioskEnterHandler
 import com.mdmesh.core.command.handlers.KioskExitHandler
+import com.mdmesh.core.kiosk.AndroidKioskHomeSwitch
+import com.mdmesh.core.kiosk.KioskApplier
 import com.mdmesh.core.command.handlers.PolicyApplyHandler
 import com.mdmesh.core.command.handlers.SystemUpdatePolicyHandler
 import com.mdmesh.core.command.handlers.PasswordPolicyHandler
@@ -40,11 +44,15 @@ import com.mdmesh.policy.AndroidManagedPolicyControl
 import com.mdmesh.core.device.AppInventoryCollector
 import com.mdmesh.core.device.HardwareIdCollector
 import com.mdmesh.core.sync.HardwareIdSource
+import com.mdmesh.core.sync.LastCheckIn
+import com.mdmesh.core.sync.SharedPrefsLastCheckIn
 import com.mdmesh.core.install.InstallManager
 import com.mdmesh.core.state.DeviceStateCollector
 import com.mdmesh.core.state.DeviceStateSource
+import com.mdmesh.core.store.ConfigStateStore
 import com.mdmesh.core.store.DataStoreKioskStateStore
 import com.mdmesh.core.store.KioskStateStore
+import com.mdmesh.core.store.SharedPrefsConfigStateStore
 import com.mdmesh.core.telemetry.EventLog
 import com.mdmesh.core.telemetry.EventSink
 import com.mdmesh.core.telemetry.DeviceInfoCollector
@@ -65,7 +73,9 @@ import com.mdmesh.oem.KnoxAdapter
 import com.mdmesh.oem.OemAdapter
 import com.mdmesh.policy.CapabilityRegistry
 import com.mdmesh.policy.TogglePolicy
+import com.mdmesh.policy.wifi.AndroidWifiRadio
 import com.mdmesh.policy.wifi.DpmHandle
+import com.mdmesh.policy.wifi.SharedPrefsWifiRadioOffState
 import com.mdmesh.remote.RemoteControlTierDetector
 import dagger.Module
 import dagger.Provides
@@ -96,8 +106,8 @@ object AgentModule {
 
     @Provides
     @Singleton
-    fun provideCapabilityRegistry(handle: DpmHandle, managed: ManagedPolicyControl): CapabilityRegistry =
-        CapabilityRegistry(handle, managed)
+    fun provideCapabilityRegistry(@ApplicationContext context: Context, handle: DpmHandle, managed: ManagedPolicyControl): CapabilityRegistry =
+        CapabilityRegistry(handle, wifiRadio = AndroidWifiRadio.from(context), wifiRadioState = SharedPrefsWifiRadioOffState(context), managed = managed)
 
     @Provides
     @Singleton
@@ -272,20 +282,21 @@ object AgentModule {
         ComponentName(context.packageName, "com.mdmesh.agent.KioskHomeAlias")
 
     @Provides
-    @IntoSet
-    fun provideKioskEnterHandler(
+    @Singleton
+    fun provideKioskApplier(
         kiosk: KioskController,
         store: KioskStateStore,
         @ApplicationContext context: Context,
-    ): CommandHandler = KioskEnterHandler(kiosk, store, kioskHomeAlias(context), context)
+    ): KioskApplier {
+        val home = kioskHomeAlias(context)
+        return KioskApplier(kiosk, store, AndroidKioskHomeSwitch(context, home), home) { kiosk.isLocked(context) }
+    }
 
-    @Provides
-    @IntoSet
-    fun provideKioskExitHandler(
-        kiosk: KioskController,
-        store: KioskStateStore,
-        @ApplicationContext context: Context,
-    ): CommandHandler = KioskExitHandler(kiosk, store, kioskHomeAlias(context), context)
+    @Provides @IntoSet
+    fun provideKioskEnterHandler(applier: KioskApplier): CommandHandler = KioskEnterHandler(applier)
+
+    @Provides @IntoSet
+    fun provideKioskExitHandler(applier: KioskApplier): CommandHandler = KioskExitHandler(applier)
 
     @Provides
     @IntoSet
@@ -338,4 +349,28 @@ object AgentModule {
     @IntoSet
     fun provideLocationModeHandler(store: LocationModeStore): CommandHandler =
         DeviceLocationModeHandler(store)
+
+    // --- Desired-state configuration (config.apply) ---
+
+    @Provides
+    @Singleton
+    fun provideConfigStateStore(@ApplicationContext context: Context): ConfigStateStore =
+        SharedPrefsConfigStateStore(context)
+
+    @Provides
+    @Singleton
+    fun provideLastCheckIn(@ApplicationContext context: Context): LastCheckIn = SharedPrefsLastCheckIn(context)
+
+    @Provides
+    @Singleton
+    fun provideConfigApplier(
+        toggles: Map<String, @JvmSuppressWildcards TogglePolicy>,
+        kiosk: KioskApplier,
+        location: LocationModeStore,
+        store: ConfigStateStore,
+    ): ConfigApplier = ConfigApplier(toggles, kiosk, location::set, store)
+
+    @Provides
+    @IntoSet
+    fun provideConfigApplyHandler(applier: ConfigApplier): CommandHandler = ConfigApplyHandler(applier)
 }

@@ -4,8 +4,9 @@ import org.junit.Test
 class DeviceActionCapabilitiesTest {
     @Test fun `personal unmanaged devices do not inherit owner actions`() {
         val keys = DeviceAction.supportedKeys(false, false, 35, true)
-        for (key in listOf("lock", "reboot", "wipe", "passcodeReset", "lockscreenMessage")) assertFalse(key in keys)
+        for (key in listOf("lock", "reboot", "wipe", "passcodeReset", "lockscreenMessage", "configApply")) assertFalse(key in keys)
         assertTrue("ring" in keys)
+        assertTrue("configApply" in DeviceAction.supportedKeys(true, true, 35, true))
     }
     @Test fun `active classic admin can lock without becoming device owner`() {
         val keys = DeviceAction.supportedKeys(false, true, 35, true)

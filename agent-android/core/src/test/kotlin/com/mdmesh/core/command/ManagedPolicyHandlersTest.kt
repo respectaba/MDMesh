@@ -55,7 +55,7 @@ class ManagedPolicyHandlersTest {
         c.keys = emptySet(); assertEquals(CommandStatus.UNSUPPORTED, handler.handle(cmd).status); assertTrue(c.passwords.isEmpty())
     }
     @Test fun `platform refusals never become applied`() = runTest {
-        for ((outcome, status) in listOf(PolicyOutcome.Unsupported to CommandStatus.UNSUPPORTED, PolicyOutcome.Failed("synthetic refusal") to CommandStatus.FAILED)) {
+        for ((outcome, status) in listOf(PolicyOutcome.Unsupported to CommandStatus.UNSUPPORTED, PolicyOutcome.Failed("synthetic refusal") to CommandStatus.FAILED, PolicyOutcome.Deferred("synthetic hold") to CommandStatus.FAILED)) {
             val c = Control(); c.result = outcome
             assertEquals(status, PasswordPolicyHandler(c).handle(command("policy.passwordRequirements", """{"quality":"NONE"}""")).status)
         }
