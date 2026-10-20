@@ -74,20 +74,21 @@ class CommandDispatcher(
         } catch (cancelled: CancellationException) {
             // A cancelled handler may already have acted: cache a refusal to
             // replay, then preserve coroutine cancellation for the caller.
-            entry.result.complete(CommandResults.failed(command, "command interrupted; action will not be repeated"))
+            entry.result.complete(replayable(CommandResults.failed(command, "command interrupted; action will not be repeated")))
             throw cancelled
         } catch (error: Throwable) {
             CommandResults.failed(command, error.message ?: "handler threw")
         }
-        val cached = synchronized(outcomes) {
+        entry.result.complete(replayable(result))
+        return result
+    }
+
+    private fun replayable(result: CommandResult): CommandResult = synchronized(outcomes) {
             val bytes = result.detail?.toByteArray()?.size ?: 0
             if (bytes > 8192 || cachedDetailBytes + bytes > 4 * 1024 * 1024) {
                 // Large app/icon data must not fill the agent heap. Preserve
                 // actual status/time and explicitly report missing replay data.
                 result.copy(detail = "Original result data unavailable for replay; action was not repeated")
             } else { cachedDetailBytes += bytes; result }
-        }
-        entry.result.complete(cached)
-        return result
     }
 }
