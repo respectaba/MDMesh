@@ -25,7 +25,7 @@ class CapabilityCollector(
     private val remoteControl: () -> RemoteControlCapability,
     private val oem: () -> OemCapability,
     private val deviceOwnerAppManagementKeys: List<String> = emptyList(),
-    private val deviceActionKeys: List<String> = emptyList(),
+    private val deviceActionKeys: () -> List<String> = { emptyList() },
     private val buildInfo: BuildInfo = BuildInfo.fromAndroid(),
 ) : CapabilitySource {
 
@@ -51,7 +51,7 @@ class CapabilityCollector(
             capabilities = Capabilities(
                 policy = policyKeys(),
                 appManagement = if (deviceOwner) deviceOwnerAppManagementKeys else emptyList(),
-                device = deviceActionKeys,
+                device = deviceActionKeys(),
                 remoteControl = remoteControl(),
                 oem = oem(),
             ),

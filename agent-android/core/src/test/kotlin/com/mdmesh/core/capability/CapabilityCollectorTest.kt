@@ -21,7 +21,7 @@ class CapabilityCollectorTest {
         remoteControl = { RemoteControlCapability() },
         oem = { OemCapability() },
         deviceOwnerAppManagementKeys = listOf("silentInstall"),
-        deviceActionKeys = listOf("lock"),
+        deviceActionKeys = { listOf("lock") },
         buildInfo = BuildInfo(sdkInt = 33, release = "13", manufacturer = "Test", model = "Unit"),
     )
 

@@ -37,4 +37,16 @@ object DeviceAction {
         "lock", "reboot", "lockscreenMessage", "alert", "ring", "ringStop",
         "passcodeReset", "wipe", "powerMode", "locationMode",
     )
+
+    /** Probe facts, never a fleet-wide assumption. Unknown future keys fail closed. */
+    fun supportedKeys(deviceOwner: Boolean, adminActive: Boolean, sdkInt: Int, resetReady: Boolean): List<String> =
+        ADVERTISED_KEYS.filter { key ->
+            when (key) {
+                "lock" -> adminActive
+                "reboot" -> deviceOwner && adminActive && sdkInt >= 24
+                "wipe", "lockscreenMessage" -> deviceOwner && adminActive
+                "passcodeReset" -> deviceOwner && adminActive && sdkInt >= 26 && resetReady
+                else -> key in setOf("alert", "ring", "ringStop", "powerMode", "locationMode")
+            }
+        }
 }
