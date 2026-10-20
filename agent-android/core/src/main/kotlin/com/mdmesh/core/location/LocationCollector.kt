@@ -49,6 +49,21 @@ class LocationCollector @Inject constructor(
         }
     }
 
+    /** API30 fresh-fix support is separate from passive telemetry; off never probes location services. */
+    fun canFetchFresh(): Boolean = runCatching {
+        Build.VERSION.SDK_INT >= 30 && modeStore.get() != DeviceAction.LOCATION_OFF && hasPermission() &&
+            (context.getSystemService(Context.LOCATION_SERVICE) as? LocationManager)?.isLocationEnabled == true
+    }.getOrDefault(false)
+
+    @Suppress("DEPRECATION") // Mock flag is available on all supported Android versions.
+    fun fetchFresh(): LocationDto? {
+        if (!canFetchFresh()) return null
+        val manager = context.getSystemService(Context.LOCATION_SERVICE) as? LocationManager ?: return null
+        val fix = currentFix(manager) ?: return null
+        if (!canFetchFresh() || fix.isFromMockProvider) return null
+        return LocationDto(fix.latitude, fix.longitude, if (fix.hasAccuracy()) fix.accuracy else null, fix.provider, fix.time)
+    }
+
     private fun hasPermission(): Boolean =
         ContextCompat.checkSelfPermission(context, Manifest.permission.ACCESS_FINE_LOCATION) ==
             PackageManager.PERMISSION_GRANTED ||

@@ -21,4 +21,12 @@ class DeviceActionCapabilitiesTest {
         assertFalse("configDisplay" in DeviceAction.supportedKeys(true, true, 27, true))
         assertTrue("configDisplay" in DeviceAction.supportedKeys(true, true, 28, true))
     }
+    @Test fun `fresh location requires owner sdk permission service and privacy readiness`() {
+        assertFalse("fetchLocation" in DeviceAction.supportedKeys(true, true, 35, true))
+        assertFalse("fetchLocation" in DeviceAction.supportedKeys(true, true, 29, true, true))
+        assertFalse("fetchLocation" in DeviceAction.supportedKeys(false, true, 35, true, true))
+        assertFalse("fetchLocation" in DeviceAction.supportedKeys(true, false, 35, true, true))
+        assertTrue("fetchLocation" in DeviceAction.supportedKeys(true, true, 30, false, true))
+    }
+
 }
