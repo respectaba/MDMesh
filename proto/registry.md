@@ -117,3 +117,16 @@ settings stop being managed and retain their last OS value. They are not availab
 or advertised as enforced by the native platform until release acceptance.
 
 Android API reference: https://developer.android.com/reference/android/app/admin/DevicePolicyManager#setSystemSetting(android.content.ComponentName,%20java.lang.String,%20java.lang.String)
+
+## Ezi fresh-location extension (source only)
+
+`device.fetchLocation` requires the exact `device.fetchLocation` capability and
+accepts no payload fields. Advertised only with current Device Owner/admin,
+API30+, granted location permission, enabled location services and a tracking
+mode other than off. An API30 current-fix request times out after five seconds;
+there is no last-known fallback. Mock, invalid, future or older-than-30-second
+fixes fail. Location DTO detail carries the fix's actual capturedAt. Authority/
+privacy is checked again after awaiting the fix; a changed gate discards it.
+No collection mode or permission is changed. Native permission/tenant/retention
+gates and signed release acceptance are still required before exposing this
+source-only command in the platform.

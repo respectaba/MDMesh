@@ -13,6 +13,11 @@ import com.mdmesh.core.command.CommandHandler
 import com.mdmesh.core.action.AlertNotifier
 import com.mdmesh.core.action.ResetPasswordTokenStore
 import com.mdmesh.core.action.RingController
+import com.mdmesh.core.command.handlers.FetchLocationHandler
+import com.mdmesh.core.location.FreshLocationSource
+import com.mdmesh.core.location.LocationCollector
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.withContext
 import com.mdmesh.core.command.handlers.AppIconsHandler
 import com.mdmesh.core.command.handlers.AppInstallHandler
 import com.mdmesh.core.command.handlers.AppScanHandler
@@ -139,6 +144,7 @@ object AgentModule {
         oemAdapter: OemAdapter,
         handle: DpmHandle,
         resetTokens: ResetPasswordTokenStore,
+        freshLocation: FreshLocationSource,
     ): CapabilityCollector {
         return CapabilityCollector(
             agentVersion = BuildConfig.VERSION_NAME,
@@ -159,7 +165,7 @@ object AgentModule {
                     val resetReady = owner && admin && Build.VERSION.SDK_INT >= 26 && runCatching {
                         resetTokens.token()?.size == 32 && handle.dpm.isResetPasswordTokenActive(handle.admin)
                     }.getOrDefault(false)
-                    DeviceAction.supportedKeys(owner, admin, Build.VERSION.SDK_INT, resetReady)
+                    DeviceAction.supportedKeys(owner, admin, Build.VERSION.SDK_INT, resetReady, freshLocation.supported())
                 }.getOrDefault(emptyList())
             },
         )
@@ -228,6 +234,21 @@ object AgentModule {
     @Provides
     @IntoSet
     fun provideVolumeHandler(control: DisplayPolicyControl): CommandHandler = DisplayPolicyHandler(control, "mediaVolume")
+
+    @Provides
+    @Singleton
+    fun provideFreshLocationSource(collector: LocationCollector, handle: DpmHandle): FreshLocationSource = object : FreshLocationSource {
+        override fun supported(): Boolean = runCatching {
+            handle.dpm.isAdminActive(handle.admin) && handle.dpm.isDeviceOwnerApp(handle.admin.packageName) && collector.canFetchFresh()
+        }.getOrDefault(false)
+        override suspend fun capture() = withContext(Dispatchers.IO) {
+            if (supported()) collector.fetchFresh() else null
+        }
+    }
+
+    @Provides
+    @IntoSet
+    fun provideFetchLocationHandler(source: FreshLocationSource): CommandHandler = FetchLocationHandler(source)
 
     // --- Command handlers (multibound). Add a command == add one @IntoSet provider. ---
 

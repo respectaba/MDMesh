@@ -89,3 +89,14 @@ protocol revision must not be interpreted as every field being enforced.
 Malformed documents are rejected before unrelated policies or delivery state
 change. No native AGENT_APPLIED_FIELDS, release APK, version or checksum changed.
 Release signing, native translation and real test-device acceptance are pending.
+
+## Fresh location (source only)
+
+Adds device.fetchLocation without a last-known fallback. Current owner/admin,
+API30, OS permission/service and non-off privacy mode gate both advertisement
+and collection. A mode/authority change during capture discards the fix. The
+response preserves actual capture time and rejects stale/future/invalid/mock
+fixes. Cancellation propagates and failure diagnostics contain no coordinates.
+No native command mapping, release signing, location permission grant or real
+hardware invocation occurred. Platform retention and per-tenant location scope
+must be enforced during later signed integration.
