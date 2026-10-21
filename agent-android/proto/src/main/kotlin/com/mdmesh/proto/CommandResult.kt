@@ -13,6 +13,8 @@ import kotlinx.serialization.Serializable
  */
 @Serializable
 data class CommandResult(
+    @OptIn(kotlinx.serialization.ExperimentalSerializationApi::class)
+    @kotlinx.serialization.EncodeDefault
     val protocolVersion: String = ProtocolJson.PROTOCOL_VERSION,
     val commandId: String,
     val status: CommandStatus,

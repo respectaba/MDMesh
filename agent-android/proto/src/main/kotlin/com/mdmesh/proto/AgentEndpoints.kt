@@ -14,6 +14,8 @@ import kotlinx.serialization.Serializable
 /** POST /enroll body. Token-gated; the server issues the device id (so [device].id is ignored here). */
 @Serializable
 data class AgentEnrollRequest(
+    @OptIn(kotlinx.serialization.ExperimentalSerializationApi::class)
+    @kotlinx.serialization.EncodeDefault
     val protocolVersion: String = ProtocolJson.PROTOCOL_VERSION,
     val enrollToken: String,
     val agent: AgentInfo,
@@ -31,6 +33,8 @@ data class AgentEnrollRequest(
  */
 @Serializable
 data class AgentEnrollResponse(
+    @OptIn(kotlinx.serialization.ExperimentalSerializationApi::class)
+    @kotlinx.serialization.EncodeDefault
     val protocolVersion: String = ProtocolJson.PROTOCOL_VERSION,
     val deviceId: String,
     val configurationName: String? = null,
@@ -40,6 +44,8 @@ data class AgentEnrollResponse(
 /** POST /checkin body: re-advertise capabilities, ack prior commands, pull the next batch. */
 @Serializable
 data class AgentCheckInRequest(
+    @OptIn(kotlinx.serialization.ExperimentalSerializationApi::class)
+    @kotlinx.serialization.EncodeDefault
     val protocolVersion: String = ProtocolJson.PROTOCOL_VERSION,
     val deviceId: String,
     val capabilities: Capabilities,
@@ -75,6 +81,8 @@ data class AgentDeviceStateDto(
 /** `data` payload of the checkin response: capability-gated commands to reconcile. */
 @Serializable
 data class AgentCheckInResponse(
+    @OptIn(kotlinx.serialization.ExperimentalSerializationApi::class)
+    @kotlinx.serialization.EncodeDefault
     val protocolVersion: String = ProtocolJson.PROTOCOL_VERSION,
     val commands: List<CommandEnvelope> = emptyList(),
     /**

@@ -16,6 +16,8 @@ import kotlinx.serialization.Serializable
  */
 @Serializable
 data class CapabilityMatrix(
+    @OptIn(kotlinx.serialization.ExperimentalSerializationApi::class)
+    @kotlinx.serialization.EncodeDefault
     val protocolVersion: String = ProtocolJson.PROTOCOL_VERSION,
     val agent: AgentInfo,
     val device: DeviceInfo,
