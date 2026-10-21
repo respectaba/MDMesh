@@ -19,6 +19,8 @@ import kotlinx.serialization.json.JsonObject
  */
 @Serializable
 data class CommandEnvelope(
+    @OptIn(kotlinx.serialization.ExperimentalSerializationApi::class)
+    @kotlinx.serialization.EncodeDefault
     val protocolVersion: String = ProtocolJson.PROTOCOL_VERSION,
     /** UUID; idempotency key. The device must dedupe by this. */
     val commandId: String,

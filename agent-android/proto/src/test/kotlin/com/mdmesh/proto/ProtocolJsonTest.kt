@@ -2,6 +2,8 @@ package com.mdmesh.proto
 
 import kotlinx.serialization.json.buildJsonObject
 import kotlinx.serialization.json.put
+import kotlinx.serialization.json.jsonObject
+import kotlinx.serialization.json.jsonPrimitive
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertNull
 import org.junit.Assert.assertTrue
@@ -76,4 +78,22 @@ class ProtocolJsonTest {
         assertEquals(command, decoded)
         assertNull(decoded.ttlSeconds)
     }
+    @Test
+    fun `wire frames always advertise their protocol version while other defaults stay lean`() {
+        val agent = AgentInfo("synthetic", "com.example.synthetic")
+        val device = DeviceInfo("synthetic", 30, isDeviceOwner = false)
+        val cap = Capabilities()
+        val frames = listOf(
+            json.encodeToString(AgentCheckInRequest.serializer(), AgentCheckInRequest(deviceId = "synthetic", capabilities = cap)),
+            json.encodeToString(AgentCheckInResponse.serializer(), AgentCheckInResponse()),
+            json.encodeToString(AgentEnrollRequest.serializer(), AgentEnrollRequest(enrollToken = "synthetic", agent = agent, device = device, capabilities = cap)),
+            json.encodeToString(AgentEnrollResponse.serializer(), AgentEnrollResponse(deviceId = "synthetic")),
+            json.encodeToString(CapabilityMatrix.serializer(), CapabilityMatrix(agent = agent, device = device, capabilities = cap)),
+            json.encodeToString(CommandEnvelope.serializer(), CommandEnvelope(commandId = "synthetic", issuedAt = "2026-10-21T00:00:00Z", type = "apps.evidence")),
+            json.encodeToString(CommandResult.serializer(), CommandResult(commandId = "synthetic", status = CommandStatus.DONE, completedAt = "2026-10-21T00:00:00Z")),
+        )
+        frames.forEach { assertEquals("1.5", json.parseToJsonElement(it).jsonObject["protocolVersion"]!!.jsonPrimitive.content) }
+        assertTrue("results" !in frames.first())
+    }
+
 }
