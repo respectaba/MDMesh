@@ -15,15 +15,15 @@ public final class AgentConfigurationSupport {
         "policy.systemUpdatePolicy", "policy.passwordRequirements", "policy.brightness",
         "policy.screenTimeout", "policy.mediaVolume", "device.kioskAppearance");
     private final Long updatedAt;
-    private final boolean activeLauncher;
+    private final boolean kioskActive;
     private final List<String> capabilities;
-    private AgentConfigurationSupport(Long updatedAt, boolean activeLauncher, List<String> capabilities) {
+    private AgentConfigurationSupport(Long updatedAt, boolean kioskActive, List<String> capabilities) {
         this.updatedAt = updatedAt;
-        this.activeLauncher = activeLauncher;
+        this.kioskActive = kioskActive;
         this.capabilities = Collections.unmodifiableList(capabilities);
     }
     public Long getUpdatedAt() { return updatedAt; }
-    public boolean isActiveLauncher() { return activeLauncher; }
+    public boolean isKioskActive() { return kioskActive; }
     public List<String> getCapabilities() { return capabilities; }
     public static AgentConfigurationSupport snapshot(DeviceState before, DeviceState after, String raw) {
         // A changing heartbeat cannot bind capabilities to the identity read by

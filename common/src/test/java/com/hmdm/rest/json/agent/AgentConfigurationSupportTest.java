@@ -7,7 +7,7 @@ public class AgentConfigurationSupportTest {
     @Test public void exposesOnlyConfigurationTokensAndSourceTime() {
         AgentConfigurationSupport p = AgentConfigurationSupport.snapshot(state(1000), state(1000),
             "{\"policy\":[\"brightness\",\"systemUpdatePolicy\",\"wipe\",\"brightness\"],\"device\":[\"kioskAppearance\",\"passcodeReset\"],\"appManagement\":[\"silentInstall\"]}");
-        assertEquals(Long.valueOf(1000), p.getUpdatedAt()); assertTrue(p.isActiveLauncher());
+        assertEquals(Long.valueOf(1000), p.getUpdatedAt()); assertTrue(p.isKioskActive());
         assertEquals(java.util.Arrays.asList("device.kioskAppearance", "policy.brightness", "policy.systemUpdatePolicy"), p.getCapabilities());
         try { p.getCapabilities().add("device.wipe"); fail("immutable"); } catch (UnsupportedOperationException expected) { }
     }
@@ -17,7 +17,7 @@ public class AgentConfigurationSupportTest {
             AgentConfigurationSupport.snapshot(state(1), state(2), "{}"),
             AgentConfigurationSupport.snapshot(state(0), state(0), "{}"),
             AgentConfigurationSupport.snapshot(state(1), state(1), String.join("", java.util.Collections.nCopies(16385, "x")))
-        }) { assertNull(p.getUpdatedAt()); assertFalse(p.isActiveLauncher()); assertTrue(p.getCapabilities().isEmpty()); }
+        }) { assertNull(p.getUpdatedAt()); assertFalse(p.isKioskActive()); assertTrue(p.getCapabilities().isEmpty()); }
     }
     @Test public void malformedAndLegacyCapabilitiesDoNotInventSupport() {
         for (String raw : new String[]{"bad", "[]", "{}", "{\"policy\":\"brightness\"}", "{\"device\":[\"unknown\"]}"})
