@@ -92,7 +92,7 @@ class ProtocolJsonTest {
             json.encodeToString(CommandEnvelope.serializer(), CommandEnvelope(commandId = "synthetic", issuedAt = "2026-10-21T00:00:00Z", type = "apps.evidence")),
             json.encodeToString(CommandResult.serializer(), CommandResult(commandId = "synthetic", status = CommandStatus.DONE, completedAt = "2026-10-21T00:00:00Z")),
         )
-        frames.forEach { assertEquals("1.5", json.parseToJsonElement(it).jsonObject["protocolVersion"]!!.jsonPrimitive.content) }
+        frames.forEach { assertEquals("1.6", json.parseToJsonElement(it).jsonObject["protocolVersion"]!!.jsonPrimitive.content) }
         assertTrue("results" !in frames.first())
     }
 

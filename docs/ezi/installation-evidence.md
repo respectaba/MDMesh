@@ -46,3 +46,13 @@ The platform additionally requires a fresh `security.observedAt` source timestam
 in the same security report as Device Owner status. New collection stamps it at
 collection time; absent/old ownership reports are unavailable even when an
 operational heartbeat is fresh. This is reported availability, not attestation.
+
+## Self-package qualification report
+Security telemetry optionally includes agentInstallation for com.mdmesh.agent
+only, using the same bounded APK/version/signer collector and live Device Owner
+checks. Unknown/missing self identity cannot qualify a release. The fresh security
+snapshot and self evidence times must both be checked by consumers. This is
+reported identity, not hardware-backed attestation or an installed-package census.
+Protocol1.6 adds the optional field; old frames continue decoding with null.
+New APK signing/qualification is required before deployment; code308 lacks this
+report and must not be treated as an exact qualified release.
