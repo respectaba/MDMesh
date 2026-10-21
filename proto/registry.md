@@ -78,6 +78,7 @@ string, except `configApply`.
 | `policy.passwordRequirements` | `policy.passwordRequirements` | `{ quality, minimumLength: 0..16 }`; no passcode or failed-attempt wipe threshold |
 | `app.install` | `app.silentInstall` | `{ url, packageName, versionCode, sha256, runAfterInstall }`, or `parts: [{ url, sha256 }]` instead of `url`/`sha256` for a split APK; `sha256` (hex) is required while the check-in says `installIntegrity: "required"` (1.3) |
 | `app.uninstall` | — | `{ packageName }`; no console or server sender yet |
+| `apps.evidence` | `app.installationEvidence` | 1–5 distinct explicit `packages`; result `installations` with observed APK/version/current signer or explicit unknown reason. No periodic census. |
 | `apps.scan` | — | none; result detail is `{ apps: [...] }` |
 | `apps.icons` | — | `{ packages: [...] }`; result detail is `{ icons: [{ pkg, pngBase64 }] }` |
 | `kiosk.enter` | — | `{ mode, allowedPackages, pinPackage, features, exitMode, password, theme }` (`KioskApplyPayload`); `features.lockButtons` blocks the power menu, `features.lockVolume` (1.4) blocks volume changes and mutes while in kiosk |
