@@ -11,6 +11,8 @@ import com.mdmesh.core.telemetry.TelemetrySource
 import com.mdmesh.proto.AgentCheckInRequest
 import com.mdmesh.proto.EventType
 import kotlinx.coroutines.CancellationException
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.withContext
 import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
 import javax.inject.Inject
@@ -75,7 +77,7 @@ class CheckInCoordinator @Inject constructor(
                     capabilities = matrix.capabilities,
                     results = acks,
                     state = runCatching { stateSource.snapshot() }.getOrNull(),
-                    telemetry = runCatching { telemetrySource.snapshot() }.getOrNull(),
+                    telemetry = withContext(Dispatchers.IO) { runCatching { telemetrySource.snapshot() }.getOrNull() },
                     events = bufferedEvents,
                     hardwareId = runCatching { hardwareIdSource.get() }.getOrNull(),
                 ),
