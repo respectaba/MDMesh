@@ -16,6 +16,11 @@ public class DeviceState implements Serializable {
     private String agentVersion;
     private String powerMode;
     private String telemetry;
+    private String configurationCapabilities;
+
+    @com.fasterxml.jackson.annotation.JsonIgnore
+    public String getConfigurationCapabilities() { return configurationCapabilities; }
+    public void setConfigurationCapabilities(String value) { configurationCapabilities = value; }
 
     public String getDeviceNumber() { return deviceNumber; }
     public void setDeviceNumber(String v) { this.deviceNumber = v; }

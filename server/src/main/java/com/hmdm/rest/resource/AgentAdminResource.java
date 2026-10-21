@@ -283,10 +283,7 @@ public class AgentAdminResource {
         Device device = unsecureDAO.getDeviceByNumber(deviceId);
         if (device == null) return Response.ERROR("error.agent.device.unknown");
         if (device.getCustomerId() != customerId.get()) return Response.PERMISSION_DENIED();
-        com.hmdm.persistence.domain.DeviceState before = commandDAO.getState(deviceId);
-        String capabilities = commandDAO.getDeviceCapabilities(deviceId);
-        com.hmdm.persistence.domain.DeviceState after = commandDAO.getState(deviceId);
-        return Response.OK(com.hmdm.rest.json.agent.AgentConfigurationSupport.snapshot(before, after, capabilities));
+        return Response.OK(com.hmdm.rest.json.agent.AgentConfigurationSupport.snapshot(commandDAO.getState(deviceId)));
     }
 
     // =================================================================================================================

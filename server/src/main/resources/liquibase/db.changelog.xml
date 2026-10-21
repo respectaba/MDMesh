@@ -2837,4 +2837,12 @@
         <rollback>ALTER TABLE applicationVersions DROP COLUMN parts;</rollback>
     </changeSet>
 
+    <changeSet id="26.10.21-configuration-capability-snapshot" author="codex" context="common">
+        <comment>Atomic per-check-in configuration capability snapshot. Existing rows remain
+            unavailable until a fresh complete state/capability frame arrives; no legacy backfill.
+            Keep this nullable column during runtime rollback.</comment>
+        <sql>ALTER TABLE device_state ADD COLUMN configurationCapabilities TEXT
+            CHECK(configurationCapabilities IS NULL OR octet_length(configurationCapabilities)&lt;=4096);</sql>
+    </changeSet>
+
 </databaseChangeLog>

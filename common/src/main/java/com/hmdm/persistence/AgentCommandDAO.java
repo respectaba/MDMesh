@@ -94,7 +94,12 @@ public class AgentCommandDAO {
 
     /** Upsert the latest device-state snapshot. */
     public void upsertState(DeviceState state) {
-        stateMapper.upsert(state);
+        state.setConfigurationCapabilities(null);
+        stateMapper.upsertWithCapabilities(state, null);
+    }
+
+    public void upsertState(DeviceState state, String capabilitiesJson) {
+        stateMapper.upsertWithCapabilities(state, capabilitiesJson);
     }
 
     /** Current device-state snapshot, or null if none reported yet. */
@@ -122,7 +127,7 @@ public class AgentCommandDAO {
     }
 
     public void updateDeviceCapabilities(String deviceNumber, String capabilitiesJson) {
-        deviceMapper.updateDeviceCapabilities(deviceNumber, capabilitiesJson);
+        stateMapper.updateCapabilitiesWithoutState(deviceNumber, capabilitiesJson);
     }
 
     public String getDeviceCapabilities(String deviceNumber) {
