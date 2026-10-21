@@ -41,3 +41,8 @@ unchanged.
 Android API references checked October 20, 2026:
 - https://developer.android.com/reference/android/content/pm/SigningInfo
 - https://developer.android.com/reference/android/content/pm/PackageInfo
+
+The platform additionally requires a fresh `security.observedAt` source timestamp
+in the same security report as Device Owner status. New collection stamps it at
+collection time; absent/old ownership reports are unavailable even when an
+operational heartbeat is fresh. This is reported availability, not attestation.
