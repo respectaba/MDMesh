@@ -66,6 +66,7 @@ class FakeMdmApi : MdmApi {
 
     /** When set, calls suspend until the gate completes — lets tests hold a request in flight. */
     var enrollGate: CompletableDeferred<Unit>? = null
+    val checkInEntered = CompletableDeferred<Unit>()
     var checkInGate: CompletableDeferred<Unit>? = null
 
     val enrollRequests = mutableListOf<AgentEnrollRequest>()
@@ -84,6 +85,7 @@ class FakeMdmApi : MdmApi {
     ): ResponseEnvelope<AgentCheckInResponse> {
         checkInAuth += authorization
         checkInRequests += request
+        checkInEntered.complete(Unit)
         checkInGate?.await()
         checkInThrows?.let { throw it }
         return checkInResponse

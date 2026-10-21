@@ -6,6 +6,8 @@ import android.os.Build
 import android.provider.Settings
 import com.mdmesh.policy.wifi.DpmHandle
 import com.mdmesh.proto.SecurityPosture
+import com.mdmesh.core.device.AndroidInstalledArtifactSource
+import com.mdmesh.core.device.InstallationEvidenceCollector
 import dagger.hilt.android.qualifiers.ApplicationContext
 import java.time.LocalDate
 import java.time.Instant
@@ -25,6 +27,11 @@ class SecurityCollector @Inject constructor(
             @Suppress("DEPRECATION")
             Settings.Secure.getInt(context.contentResolver, Settings.Secure.INSTALL_NON_MARKET_APPS, 0) == 1
         }.getOrDefault(false)
+        // Inspect only this management package. Never broaden telemetry into a
+        // package census. The shared collector bounds reads and rejects changes.
+        val identity = InstallationEvidenceCollector(AndroidInstalledArtifactSource(context))
+            .collect(listOf(context.packageName)) { handle.dpm.isDeviceOwnerApp(context.packageName) }
+            .single()
         return SecurityPosture(
             storageEncrypted = isEncrypted(),
             deviceSecure = km.isDeviceSecure,
@@ -37,6 +44,7 @@ class SecurityCollector @Inject constructor(
             ),
             isDeviceOwner = handle.dpm.isDeviceOwnerApp(context.packageName),
             observedAt = Instant.now().toString(),
+            agentInstallation = identity,
         )
     }
 

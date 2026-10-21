@@ -89,4 +89,6 @@ data class SecurityPosture(
     val isDeviceOwner: Boolean,
     /** Source time for this security snapshot; absent on older agents. */
     val observedAt: String? = null,
+    /** Bounded self-package identity, absent/unknown on legacy or unavailable agents. */
+    val agentInstallation: AppInstallationEvidence? = null,
 )

@@ -31,9 +31,9 @@ class CheckInCoordinatorTest {
     }
 
     /** Never returns, like an agent self-update: the process is replaced mid-command. */
-    private class HangingHandler : CommandHandler {
+    private class HangingHandler(private val started: CompletableDeferred<Unit>? = null) : CommandHandler {
         override val type: String = "test.hang"
-        override suspend fun handle(command: CommandEnvelope): CommandResult = awaitCancellation()
+        override suspend fun handle(command: CommandEnvelope): CommandResult { started?.complete(Unit); return awaitCancellation() }
     }
 
     /** Stands in for SharedPreferences: what a new process would read back. */
@@ -49,6 +49,8 @@ class CheckInCoordinatorTest {
         identityId: String = "dev-1",
         syncStatus: SyncStatus = SyncStatus(),
         installIntegrity: InstallIntegrityPolicy = InstallIntegrityPolicy(),
+        telemetrySource: com.mdmesh.core.telemetry.TelemetrySource = com.mdmesh.core.telemetry.TelemetrySource { null },
+        commandStarted: CompletableDeferred<Unit>? = null,
     ): CheckInCoordinator {
         val identity = FakeIdentity(initialId = identityId, initialSecret = "sek-1")
         val eventSink = object : com.mdmesh.core.telemetry.EventSink {
@@ -62,14 +64,25 @@ class CheckInCoordinatorTest {
             enrollment = enrollment,
             identity = identity,
             capabilitySource = FakeCapabilitySource(),
-            dispatcher = CommandDispatcher(listOf(TestHandler(), HangingHandler())),
+            dispatcher = CommandDispatcher(listOf(TestHandler(), HangingHandler(commandStarted))),
             pending = pending,
             stateSource = { null },
-            telemetrySource = { null },
+            telemetrySource = telemetrySource,
             eventSink = eventSink,
             syncStatus = syncStatus,
             installIntegrity = installIntegrity,
         )
+    }
+
+    @Test
+    fun `telemetry filesystem work runs off the calling service thread`() = runTest {
+        val caller = Thread.currentThread()
+        var collectorThread: Thread? = null
+        val api = FakeMdmApi().apply { checkInResponse = ResponseEnvelope(status = "OK", data = AgentCheckInResponse()) }
+        coordinator(api, PendingResults(), telemetrySource = { collectorThread = Thread.currentThread(); null }).runOnce()
+        assertNotNull(collectorThread)
+        assertFalse(caller === collectorThread)
+        assertEquals(1, api.checkInRequests.size)
     }
 
     private fun command(id: String) =
@@ -152,7 +165,8 @@ class CheckInCoordinatorTest {
 
         val first = launch { coordinator.runOnce() }
         val second = launch { coordinator.runOnce() }
-        testScheduler.advanceUntilIdle()
+        api.checkInEntered.await()
+        testScheduler.runCurrent()
 
         // With one cycle held in flight, the second caller must be parked on the mutex.
         assertEquals("second cycle must wait for the in-flight one", 1, api.checkInRequests.size)
@@ -210,8 +224,9 @@ class CheckInCoordinatorTest {
             )
         }
         val last = InMemoryLastCheckIn()
-        val cycle = launch { coordinator(api, PendingResults(), syncStatus = SyncStatus(last)).runOnce() }
-        testScheduler.advanceUntilIdle()
+        val started = CompletableDeferred<Unit>()
+        val cycle = launch { coordinator(api, PendingResults(), syncStatus = SyncStatus(last), commandStarted = started).runOnce() }
+        started.await()
         assertNotNull("recorded while the command is still running", last.okAtMs)
         cycle.cancel()
     }
@@ -244,8 +259,9 @@ class CheckInCoordinatorTest {
             )
         }
 
-        val cycle = launch { coordinator(api, PendingResults(backup)).runOnce() }
-        testScheduler.advanceUntilIdle()
+        val started = CompletableDeferred<Unit>()
+        val cycle = launch { coordinator(api, PendingResults(backup), commandStarted = started).runOnce() }
+        started.await()
 
         // c2 is still running (a self-update replaces the process here): c1's result must already be saved.
         assertEquals(listOf("c1"), PendingResults(backup).drain().map { it.commandId })

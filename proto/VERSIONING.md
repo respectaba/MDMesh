@@ -35,6 +35,8 @@ and a fresh agent on Android 16 talk to the same server without special-casing.
 
 | 1.5 | Ezi agent candidate | On-demand `apps.evidence` / `app.installationEvidence` and optional `security.observedAt` source timestamp in the same ownership report (additive). Older undated ownership remains unknown for installation-evidence availability; new fields are ignored by older peers. |
 
+| 1.6 | Ezi agent candidate | Optional `security.agentInstallation` reports only the management package’s bounded version/APK/signer identity with its source timestamp. Absent or unknown identity cannot qualify an exact release; older peers ignore the new field and older frames decode it as null. Additive, not hardware-backed attestation. |
+
 Protocol version is explicitly encoded in every versioned frame, even when it
  equals the constructor default. Other optional/default fields remain lean. This
  corrects earlier agents that omitted the version under encodeDefaults=false.
