@@ -20,6 +20,9 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import com.mdmesh.core.command.handlers.AppIconsHandler
 import com.mdmesh.core.command.handlers.AppInstallHandler
+import com.mdmesh.core.command.handlers.AppEvidenceHandler
+import com.mdmesh.core.device.AndroidInstalledArtifactSource
+import com.mdmesh.core.device.InstallationEvidenceCollector
 import com.mdmesh.core.command.handlers.AppScanHandler
 import com.mdmesh.core.command.handlers.AppUninstallHandler
 import com.mdmesh.core.command.handlers.ConfigApplyHandler
@@ -311,6 +314,13 @@ object AgentModule {
     @IntoSet
     fun provideAppScanHandler(inventory: AppInventoryCollector): CommandHandler =
         AppScanHandler(inventory)
+
+    @Provides
+    @IntoSet
+    fun provideAppEvidenceHandler(@ApplicationContext context: Context, handle: DpmHandle): CommandHandler =
+        AppEvidenceHandler(InstallationEvidenceCollector(AndroidInstalledArtifactSource(context))) {
+            runCatching { handle.dpm.isAdminActive(handle.admin) && handle.dpm.isDeviceOwnerApp(context.packageName) }.getOrDefault(false)
+        }
 
     @Provides
     @IntoSet

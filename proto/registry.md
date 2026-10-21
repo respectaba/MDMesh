@@ -35,6 +35,7 @@ Advertised only when the device has a working strategy for it (`CapabilityRegist
 | key | meaning | notes |
 |-----|---------|-------|
 | `silentInstall` | PackageInstaller silent install/upgrade, single or split APK | Advertised only while the agent is Device Owner. |
+| `installationEvidence` | on-demand installed base APK SHA-256/current signer/version for up to five explicit packages | Device Owner only; exact capability token and live authority checked in handler; split/multiple signers return unknown. |
 | `silentUninstall` | silent uninstall | Planned: not advertised yet. |
 | `splitApk` | split/.xapk install | Planned key: not advertised; `app.install` already takes split `parts`. |
 | `fdroidCatalog` | can pull from an F-Droid repo | Planned: not advertised yet. |
@@ -78,6 +79,7 @@ string, except `configApply`.
 | `policy.passwordRequirements` | `policy.passwordRequirements` | `{ quality, minimumLength: 0..16 }`; no passcode or failed-attempt wipe threshold |
 | `app.install` | `app.silentInstall` | `{ url, packageName, versionCode, sha256, runAfterInstall }`, or `parts: [{ url, sha256 }]` instead of `url`/`sha256` for a split APK; `sha256` (hex) is required while the check-in says `installIntegrity: "required"` (1.3) |
 | `app.uninstall` | — | `{ packageName }`; no console or server sender yet |
+| `apps.evidence` | `app.installationEvidence` | 1–5 distinct explicit `packages`; result `installations` with observed APK/version/current signer or explicit unknown reason. No periodic census. |
 | `apps.scan` | — | none; result detail is `{ apps: [...] }` |
 | `apps.icons` | — | `{ packages: [...] }`; result detail is `{ icons: [{ pkg, pngBase64 }] }` |
 | `kiosk.enter` | — | `{ mode, allowedPackages, pinPackage, features, exitMode, password, theme }` (`KioskApplyPayload`); `features.lockButtons` blocks the power menu, `features.lockVolume` (1.4) blocks volume changes and mutes while in kiosk |
