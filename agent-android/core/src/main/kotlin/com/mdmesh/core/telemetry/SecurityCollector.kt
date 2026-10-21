@@ -8,6 +8,7 @@ import com.mdmesh.policy.wifi.DpmHandle
 import com.mdmesh.proto.SecurityPosture
 import dagger.hilt.android.qualifiers.ApplicationContext
 import java.time.LocalDate
+import java.time.Instant
 import javax.inject.Inject
 import javax.inject.Singleton
 
@@ -35,6 +36,7 @@ class SecurityCollector @Inject constructor(
                 LocalDate.now().toEpochDay(),
             ),
             isDeviceOwner = handle.dpm.isDeviceOwnerApp(context.packageName),
+            observedAt = Instant.now().toString(),
         )
     }
 

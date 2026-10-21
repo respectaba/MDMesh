@@ -87,4 +87,6 @@ data class SecurityPosture(
     val unknownSourcesAllowed: Boolean,
     val patchAgeDays: Int?,
     val isDeviceOwner: Boolean,
+    /** Source time for this security snapshot; absent on older agents. */
+    val observedAt: String? = null,
 )
