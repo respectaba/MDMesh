@@ -9,12 +9,13 @@ import java.io.InputStream
 class InstallationEvidenceCollectorTest {
     private val snapshot = InstalledArtifactSnapshot("com.example.app", 7, 1234, "/private/base.apk", emptyList(), listOf("a".repeat(64)))
     private class Source(var value: InstalledArtifactSnapshot?, val bytes: ByteArray = "abc".toByteArray()) : InstalledArtifactSource {
+        var beforeSnapshot: (() -> Unit)? = null
         var reads = 0
         var changed: InstalledArtifactSnapshot? = null
         var opened = 0
         var closed = false
         var failRead = false
-        override fun snapshot(pkg: String): InstalledArtifactSnapshot? { reads++; return if (reads > 1 && changed != null) changed else value?.copy(pkg = pkg) }
+        override fun snapshot(pkg: String): InstalledArtifactSnapshot? { reads++; beforeSnapshot?.invoke(); return if (reads > 1 && changed != null) changed else value?.copy(pkg = pkg) }
         override fun openBaseApk(snapshot: InstalledArtifactSnapshot): InputStream {
             opened++
             return object : ByteArrayInputStream(bytes) {
@@ -63,5 +64,15 @@ class InstallationEvidenceCollectorTest {
             try { InstallationEvidenceCollector(source).collect(packages); fail("Expected invalid request") } catch (_: IllegalArgumentException) { }
             assertEquals(0, source.reads); assertEquals(0, source.opened)
         }
+    }
+    @Test fun `platform package android is a valid explicit target`() {
+        assertEquals("observed", InstallationEvidenceCollector(Source(snapshot)).collect(listOf("android")).single().status)
+    }
+    @Test fun `late final package snapshot discards hashes after the time budget`() {
+        var time = 0L
+        val source = Source(snapshot)
+        source.beforeSnapshot = { if (source.reads > 1) time = 20 }
+        val result = InstallationEvidenceCollector(source, maxDurationNanos = 10, nanoTime = { time }).collect(listOf(snapshot.pkg)).single()
+        assertEquals("time_limit", result.reason); assertNull(result.apkSha256); assertNull(result.observedAt)
     }
 }

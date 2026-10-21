@@ -4,6 +4,7 @@ import com.mdmesh.proto.AppInstallationEvidence
 import java.io.InputStream
 import java.security.MessageDigest
 import java.time.Instant
+import java.util.concurrent.CancellationException
 
 /** Internal paths never leave the device. Snapshot equality detects package updates during hashing. */
 data class InstalledArtifactSnapshot(
@@ -31,7 +32,7 @@ class InstallationEvidenceCollector(
     private val nanoTime: () -> Long = System::nanoTime,
     private val observedAt: () -> String = { Instant.now().toString() },
 ) {
-    fun collect(packages: List<String>): List<AppInstallationEvidence> {
+    fun collect(packages: List<String>, authorized: () -> Boolean = { true }): List<AppInstallationEvidence> {
         require(packages.size in 1..5 && packages.distinct().size == packages.size &&
             packages.all { it.length <= 255 && PACKAGE.matches(it) }) { "Invalid installation evidence request" }
         val started = nanoTime()
@@ -40,6 +41,7 @@ class InstallationEvidenceCollector(
         return packages.map { pkg ->
             fun unknown(reason: String) = AppInstallationEvidence(pkg, "unknown", reason)
             if (!withinTime()) return@map unknown("time_limit")
+            if (!authorized()) return@map unknown("authority_lost")
             try {
                 val initial = source.snapshot(pkg) ?: return@map unknown("unavailable")
                 if (initial.pkg != pkg || initial.versionCode < 0) return@map unknown("unavailable")
@@ -53,6 +55,7 @@ class InstallationEvidenceCollector(
                     val buffer = ByteArray(32 * 1024)
                     while (true) {
                         if (!withinTime()) { refusal = "time_limit"; break }
+                        if (!authorized()) { refusal = "authority_lost"; break }
                         // At most one byte beyond either cap is read, solely to detect an oversize file.
                         val remaining = minOf(maxApkBytes - apkBytes, maxTotalBytes - totalBytes)
                         if (remaining < 0) { refusal = "size_limit"; break }
@@ -66,16 +69,20 @@ class InstallationEvidenceCollector(
                 }
                 if (refusal != null) return@map unknown(refusal!!)
                 if (!withinTime()) return@map unknown("time_limit")
-                if (apkBytes == 0L || source.snapshot(pkg) != initial) return@map unknown("installation_changed")
+                val finalSnapshot = source.snapshot(pkg)
+                if (!withinTime()) return@map unknown("time_limit")
+                if (!authorized()) return@map unknown("authority_lost")
+                if (apkBytes == 0L || finalSnapshot != initial) return@map unknown("installation_changed")
                 AppInstallationEvidence(pkg, "observed", versionCode = initial.versionCode,
                     apkSha256 = digest.digest().joinToString("") { "%02x".format(it) },
                     signerSha256 = initial.currentSignerSha256.single(), observedAt = observedAt())
-            } catch (_: Exception) { unknown("unavailable") }
+            } catch (cancelled: CancellationException) { throw cancelled }
+            catch (_: Exception) { unknown("unavailable") }
         }
     }
 
     private companion object {
-        val PACKAGE = Regex("[A-Za-z][A-Za-z0-9_]*(\\.[A-Za-z][A-Za-z0-9_]*)+")
+        val PACKAGE = Regex("[A-Za-z][A-Za-z0-9_]*(\\.[A-Za-z][A-Za-z0-9_]*)*")
         val SHA256 = Regex("[0-9a-f]{64}")
     }
 }

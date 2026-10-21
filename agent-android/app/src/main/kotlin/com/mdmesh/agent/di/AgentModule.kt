@@ -317,8 +317,10 @@ object AgentModule {
 
     @Provides
     @IntoSet
-    fun provideAppEvidenceHandler(@ApplicationContext context: Context): CommandHandler =
-        AppEvidenceHandler(InstallationEvidenceCollector(AndroidInstalledArtifactSource(context)))
+    fun provideAppEvidenceHandler(@ApplicationContext context: Context, handle: DpmHandle): CommandHandler =
+        AppEvidenceHandler(InstallationEvidenceCollector(AndroidInstalledArtifactSource(context))) {
+            runCatching { handle.dpm.isAdminActive(handle.admin) && handle.dpm.isDeviceOwnerApp(context.packageName) }.getOrDefault(false)
+        }
 
     @Provides
     @IntoSet
