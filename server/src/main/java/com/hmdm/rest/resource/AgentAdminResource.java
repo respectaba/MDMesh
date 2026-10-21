@@ -272,6 +272,20 @@ public class AgentAdminResource {
         return Response.OK(commandDAO.getState(deviceId));
     }
 
+    /** Minimal read-only support projection for the native configuration preview.
+     * Never expose the raw capability JSON or telemetry through this endpoint. */
+    @GET
+    @Path("/devices/{deviceId}/configurationSupport")
+    @Produces(MediaType.APPLICATION_JSON)
+    public Response configurationSupport(@PathParam("deviceId") String deviceId) {
+        Optional<Integer> customerId = SecurityContext.get().getCurrentCustomerId();
+        if (!customerId.isPresent()) return Response.PERMISSION_DENIED();
+        Device device = unsecureDAO.getDeviceByNumber(deviceId);
+        if (device == null) return Response.ERROR("error.agent.device.unknown");
+        if (device.getCustomerId() != customerId.get()) return Response.PERMISSION_DENIED();
+        return Response.OK(com.hmdm.rest.json.agent.AgentConfigurationSupport.snapshot(commandDAO.getState(deviceId)));
+    }
+
     // =================================================================================================================
     @ApiOperation(value = "Device telemetry", notes = "Latest full census snapshot (JSON) reported by the agent.")
     @GET

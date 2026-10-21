@@ -231,7 +231,6 @@ public class AgentResource {
         String capsJson = null;
         if (request.getCapabilities() != null) {
             capsJson = capabilitiesJson(request.getCapabilities());
-            commandDAO.updateDeviceCapabilities(deviceNumber, capsJson);
         }
 
         // Persist the latest device-state snapshot (powers the admin console).
@@ -261,7 +260,8 @@ public class AgentResource {
             }
             row.setTelemetry(telJson);
             row.setUpdatedAt(System.currentTimeMillis());
-            commandDAO.upsertState(row);
+            row.setConfigurationCapabilities(com.hmdm.rest.json.agent.AgentConfigurationSupport.serializeCapabilities(capsJson));
+            commandDAO.upsertState(row, capsJson);
             // Mirror the Android version into the device row (infojson) so the device LIST — which
             // reads infojson->>'androidVersion', not the state table — shows it.
             String androidRelease = s.getAndroidRelease();
@@ -270,6 +270,8 @@ public class AgentResource {
             }
             // Append the reported location (dynamic.location) to the device's breadcrumb trail.
             recordLocation(deviceNumber, tel);
+        } else {
+            commandDAO.updateDeviceCapabilities(deviceNumber, capsJson);
         }
 
         // Ingest buffered lifecycle events into the timeline — capped, so one check-in can't
