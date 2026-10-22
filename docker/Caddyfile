@@ -16,6 +16,10 @@
 {$SITE_ADDRESS} {
 	encode gzip
 
+	# Persist HTTPS for one year on this host only.
+	@secure protocol https
+	header @secure >Strict-Transport-Security "max-age=31536000"
+
 	# Canonical agent-APK URL: /files/agent.apk works on BOTH deployment shapes (native serves a
 	# real file from Tomcat; here it's the supervisor's sha256-verified release mirror — the same
 	# upstream as /update/agent.apk, which stays below for back-compat). The exact-path matcher
